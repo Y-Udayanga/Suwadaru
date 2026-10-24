@@ -3,6 +3,8 @@ export const routes = {
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",
+  authCallback: "/auth/callback",
+  resetPassword: "/reset-password",
   dashboard: "/dashboard",
   newChild: "/children/new",
   child: (childId: string) => `/children/${encodeURIComponent(childId)}`,

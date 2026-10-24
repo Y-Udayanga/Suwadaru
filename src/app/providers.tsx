@@ -5,13 +5,16 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { ChildProvider } from "@/features/children"
 
 import { ThemeProvider } from "@/components/theme/ThemeProvider"
+import { LanguageProvider } from "@/components/theme/LanguageProvider"
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <BrowserRouter>
         <ConnectedAuthProvider><TooltipProvider delayDuration={400}>{children}</TooltipProvider></ConnectedAuthProvider>
       </BrowserRouter>
+      </LanguageProvider>
     </ThemeProvider>
   )
 }

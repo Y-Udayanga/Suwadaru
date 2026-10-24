@@ -4,18 +4,20 @@ import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { AppLogo } from "./AppLogo"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { LanguageToggle } from "@/components/theme/LanguageToggle"
 import { AmbientBackground } from "@/components/common/AmbientBackground"
+import { useLanguage, type TranslationKey } from "@/hooks/useLanguage"
 
 // ---------------------------------------------------------------------------
 // PublicFrame — wrapper for unauthenticated pages (landing, login, register)
 // ---------------------------------------------------------------------------
 
-const publicNav = [
-  { to: routes.home, label: "Home", end: true },
-  { to: routes.login, label: "Sign in", end: true },
-  { to: routes.register, label: "Register", end: true },
-  { to: routes.forgotPassword, label: "Reset password", end: true },
-] as const
+const publicNavDef: { to: string; labelKey: TranslationKey; fallback: string; end?: boolean }[] = [
+  { to: routes.home, labelKey: "nav.home", fallback: "Home", end: true },
+  { to: routes.login, labelKey: "nav.signIn", fallback: "Sign in", end: true },
+  { to: routes.register, labelKey: "nav.register", fallback: "Register", end: true },
+  { to: routes.forgotPassword, labelKey: "nav.recovery", fallback: "Reset password", end: true },
+]
 
 const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -28,6 +30,8 @@ const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
   )
 
 function PublicHeader() {
+  const { t } = useLanguage()
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/75 shadow-xs transition-colors duration-200">
       <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
@@ -38,15 +42,16 @@ function PublicHeader() {
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <nav aria-label="Public navigation">
             <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
-              {publicNav.map((item) => (
+              {publicNavDef.map((item) => (
                 <li key={item.to}>
                   <NavLink to={item.to} end={item.end} className={publicLinkClass}>
-                    {item.label}
+                    {t(item.labelKey, item.fallback)}
                   </NavLink>
                 </li>
               ))}
             </ul>
           </nav>
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </div>
@@ -54,9 +59,10 @@ function PublicHeader() {
   )
 }
 
+
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-svh min-w-0 flex-col bg-background/80 text-foreground transition-colors duration-300">
+    <div className="relative flex min-h-svh min-w-0 flex-col bg-background/30 text-foreground transition-colors duration-300">
       <AmbientBackground />
       {/* Skip link */}
 

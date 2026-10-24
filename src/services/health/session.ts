@@ -10,6 +10,7 @@ export function isPersistedChildId(childId: string): boolean {
 }
 
 export async function hasCaregiverSession(): Promise<boolean> {
+  if (!supabase) return false
   const { data } = await supabase.auth.getSession()
   return Boolean(data.session?.access_token)
 }

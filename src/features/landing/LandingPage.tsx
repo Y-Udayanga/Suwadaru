@@ -62,7 +62,7 @@ export function LandingPage() {
         {/* Prototype & Scope Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 px-4 py-1.5 text-xs font-semibold text-primary shadow-xs animate-pulse-subtle">
           <Sparkles aria-hidden className="size-3.5 text-primary" />
-          <span>Caregiver Health Companion • Prototype Demonstration</span>
+          <span>Caregiver Health Companion</span>
         </div>
 
         {/* Hero Title & Tagline with Radiant Sunset-Rose Gradient */}
@@ -76,9 +76,8 @@ export function LandingPage() {
           </h1>
           <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-muted-foreground text-balance leading-relaxed">
             A digital companion for caregivers in Sri Lanka alongside the physical
-            Child Health Development Record (CHDR). View EPI immunization schedules,
-            track WHO growth standards, organize MOH clinic visits, and explore practical
-            child nutrition guidance.
+            Child Health Development Record (CHDR). Save vaccination records,
+            track measurements, organize clinic visits, and keep nutrition notes.
           </p>
         </div>
 
@@ -90,7 +89,7 @@ export function LandingPage() {
             className="btn-premium w-full sm:w-auto min-h-12 px-7 text-base font-semibold gap-2.5 rounded-xl group shadow-lg"
           >
             <Link to={routes.register}>
-              Explore Demo
+              Get started
               <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -101,7 +100,7 @@ export function LandingPage() {
             size="lg"
             className="w-full sm:w-auto min-h-12 px-6 text-base font-medium rounded-xl border-border/80 hover:bg-accent/60 shadow-xs"
           >
-            <Link to={routes.login}>Sign In to Demo</Link>
+            <Link to={routes.login}>Sign in</Link>
           </Button>
         </div>
 
@@ -109,7 +108,7 @@ export function LandingPage() {
         <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pt-2 flex-wrap">
           <span className="flex items-center gap-1.5">
             <ShieldCheck aria-hidden className="size-4 text-primary" />
-            Zero real PII collected
+            Private caregiver accounts
           </span>
           <span className="hidden sm:inline">•</span>
           <span className="flex items-center gap-1.5">
@@ -119,7 +118,7 @@ export function LandingPage() {
           <span className="hidden sm:inline">•</span>
           <span className="flex items-center gap-1.5">
             <BookOpen aria-hidden className="size-4 text-primary" />
-            EPI 2023 baseline schedule
+            Parent-reported records
           </span>
         </div>
       </section>
@@ -185,15 +184,15 @@ export function LandingPage() {
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Automated EPI schedule milestones derived accurately from the child&apos;s birthdate.</span>
+                <span>Vaccination dose history saved from your child’s health record.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Transparent weight-for-age charts matched to official WHO reference standards.</span>
+                <span>Growth charts from your child’s recorded measurements.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Safe nutrition education focusing on age-appropriate local foods and red-flag referrals.</span>
+                <span>Nutrition notes and questions for your next clinic visit.</span>
               </li>
             </ul>
           </div>
@@ -222,11 +221,11 @@ export function LandingPage() {
                 <Syringe aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                EPI Immunization Timeline
+                Vaccination Records
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Track scheduled national vaccines from birth through 5 years. Clearly separates scheduled milestone due dates from unverified parent-reported doses.
+              Save parent-reported doses and their dates. Reviewed schedule milestones appear when a published schedule is available.
             </CardContent>
           </Card>
 
@@ -237,11 +236,11 @@ export function LandingPage() {
                 <TrendingUp aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                WHO Growth Curves
+                Growth Measurements
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Weight-for-age trajectory plotted alongside WHO sex-specific standards with visible reference legends (+2SD to -2SD). No automated clinical diagnosis.
+              View recorded measurements over time. Reference curves appear only when sourced data is available. No automated clinical diagnosis.
             </CardContent>
           </Card>
 
@@ -252,11 +251,11 @@ export function LandingPage() {
                 <Salad aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                Local Nutrition Education
+                Nutrition Notes
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Explore safe complementary feeding guidance, texture transitions, and local Sri Lankan food examples. Automatically refers emergency symptoms to clinics.
+              Save feeding observations and questions for your clinic visit. AI advice is not connected.
             </CardContent>
           </Card>
 
@@ -287,7 +286,7 @@ export function LandingPage() {
             How SuwaDaru Works in 3 Steps
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            A frictionless demonstration flow without backend delays.
+            Create an account and save your child’s records securely.
           </p>
         </div>
 
@@ -298,7 +297,7 @@ export function LandingPage() {
             </div>
             <h3 className="font-semibold text-foreground text-sm sm:text-base">Select or Add a Profile</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Use seeded demo children (Nethmi or Kavindu) or register a new fictional child with birthdate and sex for WHO standards.
+              Add your child’s profile, then record measurements, doses and appointments.
             </p>
           </div>
 
@@ -308,7 +307,7 @@ export function LandingPage() {
             </div>
             <h3 className="font-semibold text-foreground text-sm sm:text-base">Review Milestones & Health</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Inspect immunization due dates, track child weight, and review age-specific nutrition advice tailored to Sri Lankan families.
+              Review vaccination history, track measurements, and save feeding observations for your clinic visit.
             </p>
           </div>
 
@@ -342,7 +341,7 @@ export function LandingPage() {
                 SuwaDaru is a student and hackathon demonstration companion. It is <strong>not</strong> an official government service, a certified medical device, an authorized clinical record, or an endorsement by the Ministry of Health or Epidemiology Unit.
               </p>
               <p className="text-amber-900/90 dark:text-amber-300/80 leading-relaxed">
-                The physical, family-held <strong>Child Health Development Record (CHDR)</strong> and guidance from your Public Health Midwife (PHM) or medical doctor remain the sole authoritative clinical records. All demo data is fictional and stored locally.
+                The physical, family-held <strong>Child Health Development Record (CHDR)</strong> and guidance from your Public Health Midwife (PHM) or medical doctor remain the sole authoritative clinical records. Records are saved to your authenticated account.
               </p>
             </div>
           </div>
@@ -352,10 +351,10 @@ export function LandingPage() {
       {/* 6. Bottom Call to Action */}
       <section className="text-center max-w-xl mx-auto px-4 space-y-4 pb-6">
         <h2 className="text-2xl font-bold tracking-tight text-foreground">
-          Ready to experience the demo?
+          Ready to get started?
         </h2>
         <p className="text-sm text-muted-foreground">
-          Start exploring with instant fictional accounts and pre-seeded child profiles.
+          Create your caregiver account and add your first child profile.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
           <Button
@@ -364,7 +363,7 @@ export function LandingPage() {
             className="btn-premium w-full sm:w-auto min-h-12 px-7 text-base font-semibold gap-2.5 rounded-xl group shadow-lg"
           >
             <Link to={routes.register}>
-              Get Started with Demo
+              Get started
               <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>

@@ -14,7 +14,7 @@ const publicNav = [
   { to: routes.home, label: "Home", end: true },
   { to: routes.login, label: "Sign in", end: true },
   { to: routes.register, label: "Register", end: true },
-  { to: routes.forgotPassword, label: "Recovery preview", end: true },
+  { to: routes.forgotPassword, label: "Reset password", end: true },
 ] as const
 
 const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -81,7 +81,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
       <footer className="border-t border-border bg-card px-4 py-6">
         <div className="mx-auto max-w-6xl text-xs text-muted-foreground">
-          SuwaDaru is a fictional companion preview. Not a clinical record, a
+          SuwaDaru is a caregiver companion. Not a clinical record, a
           government service, or a substitute for a midwife or doctor.
         </div>
       </footer>

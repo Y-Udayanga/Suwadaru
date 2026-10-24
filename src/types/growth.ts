@@ -40,15 +40,14 @@ export interface GrowthReferencePoint {
 }
 
 /**
- * Reference curves for a chart. `provenance` must be `synthetic_demo` unless
- * the series is loaded from a pinned official WHO table. Clinical status stays
+ * Reference curves are loaded only from published reference data. Clinical status stays
  * `not_assessed` until a validated calculation exists.
  */
 export interface GrowthReferenceSeries {
   childId: string
   indicator: "weight_for_age"
   sex: ChildSex
-  provenance: "who" | "synthetic_demo"
+  provenance: "who" | "unavailable"
   sourceLabel: string
   sourceVersion: string
   clinicalStatus: "not_assessed"

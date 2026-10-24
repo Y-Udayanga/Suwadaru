@@ -160,7 +160,7 @@ export function ChildSwitcher({
                 {activeChild?.name || "Select Child"}
               </span>
               <span className="text-[10px] font-medium uppercase px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-                {activeChild?.sex || "demo"}
+                {activeChild?.sex || ""}
               </span>
             </div>
             {!compact && (

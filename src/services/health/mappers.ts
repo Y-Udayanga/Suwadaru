@@ -12,7 +12,7 @@ export interface VaccinationRecordRow {
   vaccine_code: string
   administered_on: string
   source: string
-  verified_by: string | null
+  verified_by?: string | null
 }
 
 export interface GrowthMeasurementRow {

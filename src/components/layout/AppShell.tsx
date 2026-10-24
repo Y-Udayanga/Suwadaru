@@ -15,7 +15,6 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
-import { demoCaregiver } from "@/data/mock"
 import { AppLogo } from "./AppLogo"
 import { UserMenuButton } from "./UserMenuButton"
 import { useAuth } from "@/features/auth"
@@ -393,7 +392,7 @@ function DemoSignOutButton() {
       )}
     >
       <LogOut aria-hidden className="size-4 shrink-0" />
-      Sign out (demo)
+      Sign out
     </button>
   )
 }
@@ -411,7 +410,7 @@ function DemoSignOutButton() {
  */
 export function AppShell() {
   const { session } = useAuth()
-  const displayName = session?.displayName || demoCaregiver.displayName
+  const displayName = session?.displayName || "Caregiver"
 
   return (
     <div className="relative flex min-h-svh min-w-0 bg-background/80 text-foreground transition-colors duration-300">
@@ -439,7 +438,7 @@ export function AppShell() {
         <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-md px-6 md:flex shadow-2xs transition-colors duration-200">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
-              Fictional demo —{" "}
+              Caregiver account —{" "}
               <span className="font-medium text-foreground">
                 {displayName}
               </span>
@@ -466,7 +465,7 @@ export function AppShell() {
 
         {/* Footer */}
         <footer className="shrink-0 border-t border-border px-6 py-4 text-xs text-muted-foreground">
-          SuwaDaru is a fictional demonstration companion. Not a clinical record,
+          SuwaDaru is a caregiver companion. Not a clinical record,
           government service, or substitute for professional healthcare advice.
         </footer>
       </div>

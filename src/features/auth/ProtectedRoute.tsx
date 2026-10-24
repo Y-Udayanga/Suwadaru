@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Route guard that requires an active demo session.
+ * Route guard that requires an active session.
  * Unauthenticated visitors are redirected to /login with return location preserved.
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
@@ -23,7 +23,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         aria-live="polite"
         className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6"
       >
-        <span className="sr-only">Checking demo session...</span>
+        <span className="sr-only">Checking session...</span>
         <div className="flex flex-col gap-2">
           <LoadingSkeleton rows={2} />
         </div>

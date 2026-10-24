@@ -8,13 +8,6 @@ export {
   validateIsoDate,
 } from "./calendar.ts"
 export {
-  DEMONSTRATION_DISCLAIMER,
-  DEMONSTRATION_SCHEDULE_VERSION,
-  EPI_SOURCE_NAME,
-  EPI_SOURCE_URL,
-  getDemonstrationEpiSchedule,
-} from "./demonstration-schedule.ts"
-export {
   PRESENTATION_DUE_WINDOW_DAYS,
   buildChildVaccinationSchedule,
   buildVaccinationSchedule,

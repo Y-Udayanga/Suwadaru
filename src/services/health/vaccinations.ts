@@ -1,10 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import {
-  buildVaccinationSchedule,
+
   calendarDateInColombo,
-  getDemonstrationEpiSchedule,
+
   validateReportedDose,
 } from "@/domain/health/vaccination"
+import { addCalendarMonths } from "@/features/vaccinations/calendarDate"
 import { AppError } from "@/services/contracts"
 import type { AddReportedDoseInput, VaccinationMilestone, VaccinationRecord } from "@/types"
 import { requireChild } from "./child-access.ts"
@@ -12,10 +13,10 @@ import { toVaccinationRecord, type VaccinationRecordRow } from "./mappers.ts"
 import { assertUuid, throwHealthResult, throwSupabaseError } from "./supabase-error.ts"
 
 const RECORD_COLUMNS =
-  "id, child_id, vaccine_code, administered_on, source, verified_by"
+  "id, child_id, vaccine_code, administered_on, source"
 
 /**
- * Calculated demonstration milestones for a child the caregiver can read.
+ * Curated active milestones for a child the caregiver can read.
  * Due dates come from the vaccination engine. They are not stored.
  */
 export async function getVaccineSchedule(
@@ -23,14 +24,14 @@ export async function getVaccineSchedule(
   childId: string,
 ): Promise<VaccinationMilestone[]> {
   const child = await requireChild(supabase, childId)
-  const built = buildVaccinationSchedule({
-    childId: child.id,
-    dateOfBirth: child.dateOfBirth,
-    today: calendarDateInColombo(new Date()),
-    schedule: getDemonstrationEpiSchedule(),
-  })
-  if (!built.ok) throwHealthResult(built.error.code, built.error.message)
-  return [...built.value]
+  const { data, error } = await supabase.from("vaccination_schedule")
+    .select("*").eq("active", true).order("age_months")
+  if (error) throwSupabaseError(error)
+  return (data ?? []).map(row => ({
+    id: row.id, vaccineCode: row.vaccine_code, vaccineName: row.vaccine_name,
+    ageMonths: row.age_months, dueDate: addCalendarMonths(child.dateOfBirth, row.age_months),
+    scheduleVersion: row.schedule_version, sourceUrl: row.source_url,
+  }))
 }
 
 /** Saved administrations. An empty list means none are stored, not that the child is hidden. */
@@ -51,7 +52,7 @@ export async function getVaccinationRecords(
 
 /**
  * Stores a caregiver report. The database trigger keeps source as parent_reported
- * and verified_by empty. A second dose for the same code must be an update.
+ * as a caregiver report. A second dose for the same code must be an update.
  */
 export async function addVaccinationRecord(
   supabase: SupabaseClient,
@@ -95,12 +96,12 @@ export async function updateVaccinationRecord(
 }
 
 function checkedDose(dateOfBirth: string, vaccineCode: string, administeredOn: string) {
-  const schedule = getDemonstrationEpiSchedule()
+
   const checked = validateReportedDose({
     dateOfBirth,
     vaccineCode,
     administeredOn,
-    knownVaccineCodes: schedule.doses.map((dose) => dose.vaccineCode),
+    knownVaccineCodes: [vaccineCode],
     today: calendarDateInColombo(new Date()),
   })
   if (!checked.ok) throwHealthResult(checked.error.code, checked.error.message)

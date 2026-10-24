@@ -4,8 +4,8 @@ import {
   FunctionsRelayError,
 } from "@supabase/supabase-js"
 import { AppError, type AppErrorCode } from "@/services/contracts"
-import type { ChatMessage } from "@/types"
-import { supabase } from "@/utils/supabase"
+interface AssistantMessage { id: string; sender: "assistant"; text: string; createdAt: string }
+import { database } from "../health.ts"
 import { assertUuid } from "./supabase-error.ts"
 
 export type NutritionSafetyCategory =
@@ -14,7 +14,7 @@ export type NutritionSafetyCategory =
   | "educational"
 
 export interface NutritionAssistantReply {
-  message: ChatMessage
+  message: AssistantMessage
   safetyCategory: NutritionSafetyCategory
   modelCalled: boolean
 }
@@ -32,12 +32,12 @@ export async function askNutritionAssistant(
     throw new AppError("validation", "A question is required.")
   }
 
-  const { data: sessionData } = await supabase.auth.getSession()
+  const { data: sessionData } = await database().auth.getSession()
   if (!sessionData.session?.access_token) {
     throw new AppError("unauthenticated", "Authentication required.")
   }
 
-  const { data, error } = await supabase.functions.invoke("nutrition-assistant", {
+  const { data, error } = await database().functions.invoke("nutrition-assistant", {
     body: { childId, question: message },
   })
   if (error) throw await functionError(error)
@@ -88,7 +88,7 @@ function parseReply(value: unknown): NutritionAssistantReply {
       sender: "assistant",
       text: bubble.text,
       createdAt: typeof bubble.createdAt === "string" ? bubble.createdAt : colomboNow(),
-      isDemo: !modelCalled,
+
     },
   }
 }

@@ -1,4 +1,8 @@
-# Phase 2: core child schema
+# Database deployment
+
+The hosted project now includes all migrations through `20261024091605_connected_health_records_realtime.sql`. All ten application/reference tables use RLS and Realtime. See [Connected database](../docs/Connected_Database.md) for the current state, test results and deployment notes. The phase descriptions below document the earlier implementation steps.
+
+## Phase 2: core child schema
 
 Migration: `migrations/20261024071052_phase2_core_child_schema.sql`.
 Scope: `user_profiles`, `children`, `child_caregivers`, their constraints,

@@ -2,7 +2,7 @@
 
 SuwaDaru is a mobile-first companion preview for caregivers. It is not a clinical record, a government service, or a substitute for the paper Child Health Development Record, a midwife, or a doctor.
 
-This repository currently contains the shared frontend scaffold: the app shell, route map, design tokens, domain types, and service contracts. Screens are placeholders. No backend is connected.
+The application now connects to Supabase Auth, PostgreSQL and Realtime. Accounts, children, growth measurements, reported vaccinations, appointments, nutrition notes and tasks persist in the database. Runtime mock services and seeded profiles have been removed. See [Connected database](docs/Connected_Database.md) for schema, access rules, verification and rollout details.
 
 ## Setup
 
@@ -74,6 +74,6 @@ The typeface is Inter, with a system-ui fallback.
 
 ## Data
 
-Sample profiles use the fictional names from the requirements document: Demo Parent, Nethmi, and Kavindu. Do not add real people, contact details, or clinical records.
+No profiles or health records are seeded. Create an account and add your own child profile. Reference tables stay empty until reviewed source data is published. Nutrition currently saves notes without automated advice. Test fixtures are isolated from application data.
 
 Requirements and the frontend handoff are in `docs/`.

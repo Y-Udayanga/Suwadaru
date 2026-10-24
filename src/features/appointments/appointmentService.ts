@@ -43,26 +43,34 @@ function findById(
   )
 }
 
-export const appointmentService: AppointmentService = {
-  async list(childId) {
+export interface AppointmentServiceWithExtras extends AppointmentService {
+  complete(appointmentId: string): Promise<ClinicAppointment>
+  resetToDemo(): void
+}
+
+export const appointmentService: AppointmentServiceWithExtras = {
+  async list(childId: string): Promise<ClinicAppointment[]> {
     await delay()
-    return sessionAppointments[childId] ?? []
+    return sessionAppointments[childId] ? [...sessionAppointments[childId]] : []
   },
 
-  async create(input: CreateAppointmentInput) {
+  async create(input: CreateAppointmentInput): Promise<ClinicAppointment> {
     await delay()
-    if (!input.scheduledAt) {
-      throw new AppError("validation", "Appointment date/time is required.")
+    if (input.clinicName?.includes("[simulate-error]")) {
+      throw new AppError("unavailable", "Simulated service failure. Please retry.")
     }
-    if (!input.clinicName.trim()) {
+    if (!input.clinicName || !input.clinicName.trim()) {
       throw new AppError("validation", "Clinic name is required.")
     }
+    if (!input.scheduledAt || isNaN(Date.parse(input.scheduledAt))) {
+      throw new AppError("validation", "Valid appointment date and time is required.")
+    }
     const appointment: ClinicAppointment = {
-      id: `appt_${input.childId}_${Date.now()}`,
+      id: `appt_${input.childId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       childId: input.childId,
       scheduledAt: input.scheduledAt,
-      clinicName: input.clinicName,
-      purpose: input.purpose,
+      clinicName: input.clinicName.trim(),
+      purpose: input.purpose?.trim() || undefined,
       status: "scheduled",
     }
     const existing = sessionAppointments[input.childId] ?? []
@@ -70,30 +78,41 @@ export const appointmentService: AppointmentService = {
     return appointment
   },
 
-  async update(appointmentId, input: UpdateAppointmentInput) {
+  async update(
+    appointmentId: string,
+    input: UpdateAppointmentInput,
+  ): Promise<ClinicAppointment> {
     await delay()
-    let found: ClinicAppointment | undefined
+    if (input.clinicName !== undefined && !input.clinicName.trim()) {
+      throw new AppError("validation", "Clinic name cannot be empty.")
+    }
+    if (input.scheduledAt !== undefined && isNaN(Date.parse(input.scheduledAt))) {
+      throw new AppError("validation", "Valid appointment date and time is required.")
+    }
+
     for (const childId of Object.keys(sessionAppointments)) {
       const appt = findById(childId, appointmentId)
       if (appt) {
-        found = appt
-        const updated: ClinicAppointment = { ...appt, ...input }
+        const updated: ClinicAppointment = {
+          ...appt,
+          scheduledAt: input.scheduledAt ?? appt.scheduledAt,
+          clinicName: input.clinicName ? input.clinicName.trim() : appt.clinicName,
+          purpose: input.purpose !== undefined ? input.purpose.trim() || undefined : appt.purpose,
+          status: input.status ?? appt.status,
+        }
         sessionAppointments[childId] = sessionAppointments[childId].map(
           (a) => (a.id === appointmentId ? updated : a),
         )
         return updated
       }
     }
-    if (!found) {
-      throw new AppError(
-        "not_found",
-        `Appointment "${appointmentId}" not found.`,
-      )
-    }
-    throw new AppError("unavailable", "Unexpected error updating appointment.")
+    throw new AppError(
+      "not_found",
+      `Appointment "${appointmentId}" not found.`,
+    )
   },
 
-  async cancel(appointmentId) {
+  async cancel(appointmentId: string): Promise<ClinicAppointment> {
     await delay()
     for (const childId of Object.keys(sessionAppointments)) {
       const appt = findById(childId, appointmentId)
@@ -113,4 +132,35 @@ export const appointmentService: AppointmentService = {
       `Appointment "${appointmentId}" not found.`,
     )
   },
+
+  async complete(appointmentId: string): Promise<ClinicAppointment> {
+    await delay()
+    for (const childId of Object.keys(sessionAppointments)) {
+      const appt = findById(childId, appointmentId)
+      if (appt) {
+        const completed: ClinicAppointment = {
+          ...appt,
+          status: "completed",
+        }
+        sessionAppointments[childId] = sessionAppointments[childId].map(
+          (a) => (a.id === appointmentId ? completed : a),
+        )
+        return completed
+      }
+    }
+    throw new AppError(
+      "not_found",
+      `Appointment "${appointmentId}" not found.`,
+    )
+  },
+
+  resetToDemo(): void {
+    for (const key of Object.keys(sessionAppointments)) {
+      delete sessionAppointments[key]
+    }
+    for (const [k, v] of Object.entries(MOCK_APPOINTMENTS)) {
+      sessionAppointments[k] = [...v]
+    }
+  },
 }
+

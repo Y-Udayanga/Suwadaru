@@ -88,20 +88,39 @@ Install isolated test tooling without changing application dependencies:
 ```powershell
 npm install --prefix node_modules/.phase2-tools --no-audit --no-fund --save-exact supabase@2.122.0 @electric-sql/pglite@0.5.11
 node supabase/tests/phase2-core.test.mjs
+node supabase/tests/phase3-rls.test.mjs
 ```
 
 The runner uses ephemeral PGlite (PostgreSQL 18.6) with test-only auth objects,
 roles, JWT-subject context and Supabase-style default grants. It applies the
-actual migration, then exercises authorization, constraints, atomic rollback,
+actual migrations, then exercises authorization, constraints, atomic rollback,
 UUIDs, timestamp protection, foreign keys and private function permissions.
 It never reads `.env` or connects to a remote database. The local auth fixture
 is not a migration and must never be applied to Supabase.
 
-This verifies PostgreSQL behavior, not GoTrue/PostgREST integration. Docker's
-daemon was unavailable during implementation, so full Supabase reset/lint,
-advisors and HTTP/JWT integration were not run. Before integration, apply the
-migration to a disposable local Supabase stack and test the RPC through its
-Data API. Do not use the shared hosted database for validation.
+## Phase 3: secure row level security (RLS)
+
+Migration: `migrations/20261024073000_phase3_secure_row_level_security.sql`.
+Test Suite: `supabase/tests/phase3-rls.test.mjs`.
+
+### Security Invariants
+
+- **Multi-Tenant Isolation**: Two independent accounts (Account A and Account B)
+  cannot access or modify each other's children. Knowing a child UUID does not
+  permit an unauthorized caller to view or update it (IDOR protection).
+- **Acyclic Membership Policies**: `child_caregivers` SELECT policy compares only
+  `user_id = (select auth.uid())` without querying `public.children`. This prevents
+  circular policy recursion.
+- **Role-Based Update Granularity**:
+  - `owner` and `editor` caregivers may update permitted demographics.
+  - `viewer` caregivers receive 0 rows on update attempts.
+- **Atomic Creation Provenance**: Direct `INSERT` on `public.children` is denied;
+  all creations go through `public.create_child` / `private.create_child_with_owner`.
+- **Privilege Escalation Prevention**: `public.child_caregivers` has no client
+  INSERT or UPDATE grants. Users cannot assign themselves owner access or attach
+  themselves to arbitrary children.
+- **No Client Deletion**: Direct DELETE is disabled on `children` and
+  `child_caregivers` for the MVP.
 
 ## Member 4 integration
 
@@ -126,4 +145,5 @@ Data API. Do not use the shared hosted database for validation.
 - Use `create_child` for child creation. Two separate client inserts will fail
   and cannot replace the atomic API.
 
-Suggested commit message: `feat(db): add secure Phase 2 child schema and atomic owner creation`
+Suggested commit message: `feat(db): implement and verify phase 3 secure row level security policies`
+

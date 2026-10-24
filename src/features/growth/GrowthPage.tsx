@@ -7,11 +7,11 @@ import { watchRecords } from "@/services/realtime"
  *
  * SAFETY & GOVERNANCE (BRD §7.4, §10, §12, §14, T-08, T-09, T-10):
  *   - Prioritizes accurate input and source attribution over medical classification.
- *   - Reference curves are explicitly synthetic; prominent banner:
+ *   - Published WHO reference curves retain their source attribution:
  *     "Reference curves appear only when verified source data is available."
  *   - Clinical status is always "not_assessed".
  *   - NEVER labels a child "healthy", "malnourished", "stunted", or "underweight" (BR-07).
- *   - Legend keys (+2 SD, +1 SD, median, -1 SD, -2 SD) are marked as illustrative placeholders.
+ *   - Reference curves are visually distinct from recorded weights.
  *   - Supports 0-point (empty), 1-point, and several-point states.
  *   - Validates positive numbers and non-future dates (FR-033, T-09).
  *   - Accessible table alternative and textual equivalents for chart tooltips (NFR-05).
@@ -57,6 +57,7 @@ import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { resolveChild, ageInMonths, formatAge } from "../childResolver"
 import { growthService } from "./growthService"
+import { buildChartData, resolveChartReference } from "./chartData"
 const GROWTH_DISCLAIMER_TEXT = 'Measurements are caregiver-reported. Clinical status has not been assessed.'
 const CLINICAL_ASSESSMENT_NOTICE = 'Discuss growth concerns with your midwife or doctor.'
 import { formatCalendarDate, isFutureDate } from "../vaccinations/calendarDate"
@@ -184,59 +185,6 @@ function reducer(state: PageState, action: Action): PageState {
 }
 
 // ---------------------------------------------------------------------------
-// Chart Data Point Interface
-// ---------------------------------------------------------------------------
-interface ChartDataPoint {
-  ageMonths: number
-  measuredOn?: string
-  weight?: number
-  sdMinus2?: number
-  sdMinus1?: number
-  median?: number
-  sdPlus1?: number
-  sdPlus2?: number
-}
-
-function buildChartData(
-  child: Child,
-  measurements: GrowthMeasurement[],
-  reference: GrowthReferenceSeries,
-): ChartDataPoint[] {
-  const pointsMap = new Map<number, ChartDataPoint>()
-
-  // 1. Populate reference grid points (0, 1, 2, 3, 4, 6, 9, 12, 18, 24, 36, 48, 60 months)
-  for (const ref of reference.points) {
-    pointsMap.set(ref.ageMonths, {
-      ageMonths: ref.ageMonths,
-      sdMinus2: ref.sdMinus2Kg,
-      sdMinus1: ref.sdMinus1Kg,
-      median: ref.medianKg,
-      sdPlus1: ref.sdPlus1Kg,
-      sdPlus2: ref.sdPlus2Kg,
-    })
-  }
-
-  // 2. Map actual child measurements
-  for (const m of measurements) {
-    if (m.weightKg === undefined || m.weightKg === null) continue
-    const age = ageInMonths(child.dateOfBirth, m.measuredOn)
-    const existing = pointsMap.get(age)
-    if (existing) {
-      existing.weight = m.weightKg
-      existing.measuredOn = m.measuredOn
-    } else {
-      pointsMap.set(age, {
-        ageMonths: age,
-        measuredOn: m.measuredOn,
-        weight: m.weightKg,
-      })
-    }
-  }
-
-  return Array.from(pointsMap.values()).sort((a, b) => a.ageMonths - b.ageMonths)
-}
-
-// ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 export function GrowthPage({ childId }: ChildFeaturePageProps) {
@@ -257,7 +205,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
           growthService.getReferenceSeries(childId),
         ])
         if (!cancelled && current === revision) {
-          dispatch({ type: "LOADED", child, measurements, reference })
+          dispatch({ type: "LOADED", child, measurements, reference: resolveChartReference(child, reference) })
         }
       } catch (err) {
         if (!cancelled && current === revision) {
@@ -345,7 +293,13 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
 
   const isSi = language === "si"
   const childAgeMonths = ageInMonths(child.dateOfBirth, today)
-  const chartData = buildChartData(child, measurements, reference)
+  const chartData = buildChartData(child.dateOfBirth, measurements, reference)
+  const hasReference = reference.points.length > 0
+  const maxAge = Math.max(6, ...chartData.filter(point => "weight" in point).map(point => point.ageMonths))
+  const chartMaxAge = Math.ceil(maxAge / 6) * 6
+  const ageTickStep = chartMaxAge <= 12 ? 2 : chartMaxAge <= 36 ? 6 : 12
+  const ageTicks = Array.from({ length: Math.floor(chartMaxAge / ageTickStep) + 1 }, (_, i) => i * ageTickStep)
+  const visibleChartData = chartData.filter(point => point.ageMonths <= chartMaxAge)
   const validWeightCount = measurements.filter((m) => m.weightKg != null && m.weightKg > 0).length
   const isNoDataState = validWeightCount === 0
   const isSinglePointState = validWeightCount === 1
@@ -836,7 +790,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
       {/* ── Recharts Chart Section ── */}
       {!isNoDataState && (
         <section
-          className="rounded-xl border bg-card p-5 shadow-xs space-y-4"
+          className="min-w-0 rounded-2xl border bg-card p-3 shadow-xs space-y-4 sm:p-6"
           aria-labelledby="growth-chart-heading"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
@@ -845,11 +799,12 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                 Weight-for-Age Trajectory
               </h3>
               <p className="text-xs text-muted-foreground">
-                Y-Axis: Weight in kilograms (kg) · X-Axis: Child age in completed calendar months
+                Recorded weight over time · Age in months
               </p>
             </div>
 
-            {/* Toggle Illustrative Reference Curves */}
+            {/* Published reference curves */}
+            {hasReference && (
             <button
               type="button"
               onClick={() => dispatch({ type: "TOGGLE_REFERENCE_CURVES" })}
@@ -859,25 +814,27 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
               {showReferenceCurves ? (
                 <>
                   <EyeOff className="h-3.5 w-3.5" aria-hidden />
-                  <span>Hide Placeholder Bands</span>
+                  <span>Hide reference curves</span>
                 </>
               ) : (
                 <>
                   <Eye className="h-3.5 w-3.5" aria-hidden />
-                  <span>Show Placeholder Bands</span>
+                  <span>Show reference curves</span>
                 </>
               )}
             </button>
+            )}
           </div>
 
           {/* Chart Container */}
-          <div className="w-full h-80 sm:h-96">
+          <div className="w-full min-w-0 h-96 sm:h-[440px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={chartData}
-                margin={{ top: 12, right: 16, bottom: 20, left: 4 }}
+                data={visibleChartData}
+                margin={{ top: 16, right: 20, bottom: 16, left: 0 }}
+                accessibilityLayer
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-muted/40" />
+                <CartesianGrid vertical={false} strokeDasharray="3 5" stroke="var(--border)" />
 
                 {/* Explicit Age Axis (months) */}
                 <XAxis
@@ -885,12 +842,16 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                   name="Age"
                   unit=" mo"
                   type="number"
-                  domain={[0, 60]}
-                  ticks={[0, 1, 2, 3, 4, 6, 9, 12, 18, 24, 36, 48, 60]}
+                  domain={[0, chartMaxAge]}
+                  ticks={ageTicks}
+                  tickLine={false}
+                  axisLine={{ stroke: "var(--border)" }}
+                  tickMargin={10}
+                  height={54}
                   tick={{ fontSize: 11, fill: "currentColor" }}
                   className="text-muted-foreground"
                   label={{
-                    value: "Child Age (completed calendar months from DOB)",
+                    value: "Age (months)",
                     position: "insideBottom",
                     offset: -12,
                     fontSize: 11,
@@ -904,23 +865,24 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                   name="Weight"
                   unit=" kg"
                   domain={["auto", "auto"]}
+                  width={62}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
                   tick={{ fontSize: 11, fill: "currentColor" }}
                   className="text-muted-foreground"
-                  label={{
-                    value: "Weight (kg)",
-                    angle: -90,
-                    position: "insideLeft",
-                    offset: 8,
-                    fontSize: 11,
-                    fill: "currentColor",
-                    className: "text-muted-foreground font-medium",
-                  }}
+
                 />
 
                 {/* Textual equivalent tooltip */}
                 <Tooltip
                   formatter={(v: any, name: any) => [`${v ?? "—"} kg`, String(name)]}
-                  labelFormatter={(age: any) => `Age: ${age} completed calendar months`}
+                  labelFormatter={(age, payload) => {
+                    const observation = payload.find(item => item.dataKey === "weight")?.payload
+                    return observation?.measuredOn
+                      ? `${formatCalendarDate(observation.measuredOn)} · ${Number(age).toFixed(1)} months`
+                      : `Age: ${Number(age).toFixed(1)} months`
+                  }}
                   contentStyle={{
                     backgroundColor: "var(--background)",
                     borderColor: "var(--border)",
@@ -931,20 +893,22 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                 />
 
                 <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  verticalAlign="top"
+                  iconType="plainline"
+                  wrapperStyle={{ fontSize: 11, paddingBottom: 24, lineHeight: "24px" }}
                   formatter={(value: string) => (
                     <span className="text-muted-foreground">{value}</span>
                   )}
                 />
 
-                {/* Synthetic reference curves marked as illustrative placeholders */}
-                {showReferenceCurves && (
+                {/* Published reference curves, distinct from the recorded trend */}
+                {showReferenceCurves && hasReference && (
                   <>
                     <Line
                       dataKey="sdPlus2"
                       name="+2 SD (reference)"
-                      stroke="#E27D72"
-                      strokeWidth={1}
+                      stroke="#c27035"
+                      strokeWidth={1.75}
                       strokeDasharray="4 4"
                       dot={false}
                       connectNulls
@@ -953,8 +917,8 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     <Line
                       dataKey="sdPlus1"
                       name="+1 SD (reference)"
-                      stroke="#F4C95D"
-                      strokeWidth={1}
+                      stroke="#718846"
+                      strokeWidth={1.75}
                       strokeDasharray="4 4"
                       dot={false}
                       connectNulls
@@ -963,7 +927,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     <Line
                       dataKey="median"
                       name="Median (reference)"
-                      stroke="#BE123C"
+                      stroke="#64748b"
                       strokeWidth={1.5}
                       strokeDasharray="6 3"
                       dot={false}
@@ -973,8 +937,8 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     <Line
                       dataKey="sdMinus1"
                       name="-1 SD (reference)"
-                      stroke="#F4C95D"
-                      strokeWidth={1}
+                      stroke="#718846"
+                      strokeWidth={1.75}
                       strokeDasharray="4 4"
                       dot={false}
                       connectNulls
@@ -983,8 +947,8 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     <Line
                       dataKey="sdMinus2"
                       name="-2 SD (reference)"
-                      stroke="#E27D72"
-                      strokeWidth={1}
+                      stroke="#c27035"
+                      strokeWidth={1.75}
                       strokeDasharray="4 4"
                       dot={false}
                       connectNulls
@@ -1002,7 +966,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                   dot={{ r: 5, fill: "#BE123C", stroke: "#ffffff", strokeWidth: 2 }}
                   activeDot={{ r: 7, fill: "#BE123C" }}
                   connectNulls
-                  isAnimationActive={true}
+                  isAnimationActive={false}
                 />
 
               </LineChart>

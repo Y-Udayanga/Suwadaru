@@ -1,0 +1,18 @@
+/*
+  SuwaDaru brand tokens (BRD section 12).
+
+  --suwa-teal   #0F766E  primary actions and selected navigation
+  --suwa-mint   #E8F7F3  calm support surface
+  --suwa-canvas #F8FAFC  page background
+  --suwa-gold   #F4C95D  restrained highlight
+  --suwa-coral  #E27D72  carefully described warnings, never a diagnosis
+*/
+
+:root {
+  --suwa-teal: #0F766E;
+  --suwa-mint: #E8F7F3;
+  --suwa-canvas: #F8FAFC;
+  --suwa-gold: #F4C95D;
+  --suwa-coral: #E27D72;
+  --suwa-ink: #0f172a;
+}

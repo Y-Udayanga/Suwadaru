@@ -1,220 +1,57 @@
-/**
- * Gemini AI Service with Auto-Flow (Fallback) Support.
- *
- * If a model's quota, rate limit, or availability is exhausted (e.g. 429, 404, 503),
- * the service automatically flows to the next model in the prioritized list.
- */
-
-export interface GeminiModelConfig {
-  id: string
-  name: string
-  description: string
-}
-
-export const GEMINI_MODEL_LIST: GeminiModelConfig[] = [
-  {
-    id: 'gemini-3.8-flash',
-    name: 'Gemini 3.8 Flash',
-    description: 'Flagship flash model, advanced reasoning & lowest latency',
-  },
-  {
-    id: 'gemini-3.6-flash',
-    name: 'Gemini 3.6 Flash',
-    description: 'High-efficiency flash reasoning model',
-  },
-  {
-    id: 'gemini-3.7-flash',
-    name: 'Gemini 3.7 Flash',
-    description: 'Hybrid speed & deep reasoning',
-  },
-  {
-    id: 'gemini-3.5-flash',
-    name: 'Gemini 3.5 Flash',
-    description: 'Reliable high-throughput flash model',
-  },
-  {
-    id: 'gemini-3.5-flash-lite',
-    name: 'Gemini 3.5 Flash Lite',
-    description: 'Ultra-lightweight, extreme response speed',
-  },
-  {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash Lite',
-    description: 'High efficiency lightweight flash',
-  },
-  {
-    id: 'gemini-3-flash',
-    name: 'Gemini 3 Flash',
-    description: 'Third-gen foundation flash model',
-  },
-  {
-    id: 'gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash Lite',
-    description: 'Next-gen compact flash model',
-  },
-]
-
-export interface ModelAttemptLog {
-  modelId: string
-  success: boolean
-  status?: number
-  error?: string
-}
-
-export interface GeminiRequestOptions {
+export interface ChatTurn { role: 'user' | 'model'; parts: { text: string }[] }
+export interface ChatOptions {
   prompt: string
-  systemInstruction?: string
-  temperature?: number
-  maxOutputTokens?: number
-  apiKey?: string
-  onModelAttempt?: (modelId: string, index: number) => void
-  onAutoFlow?: (failedModelId: string, reason: string, nextModelId: string) => void
+  history?: ChatTurn[]
+  signal?: AbortSignal
+  onText?: (text: string) => void
+  onModel?: (model: string) => void
 }
 
-export interface GeminiResponse {
-  text: string
-  modelUsed: string
-  attempts: ModelAttemptLog[]
-}
-
-/**
- * Retrieves the Gemini API key from environment variables.
- */
-export function getGeminiApiKey(): string {
-  const key =
-    import.meta.env.VITE_GEMINI_API_KEY ||
-    import.meta.env.GEMINI_API_KEY ||
-    ''
-
-  return key
-}
-
-/**
- * Sends a generation request to Gemini with automatic fallback (auto-flow)
- * through the prioritized model list when a model fails or quota is exhausted.
- */
-export async function generateContentWithAutoFlow(
-  options: GeminiRequestOptions
-): Promise<GeminiResponse> {
-  const apiKey = options.apiKey || getGeminiApiKey()
-
-  if (!apiKey) {
-    throw new Error(
-      'Gemini API key is missing. Please set VITE_GEMINI_API_KEY in your .env file.'
-    )
+export async function streamChat(options: ChatOptions) {
+  // Keep complete question/answer pairs within the server's context budget.
+  const history = (options.history || []).slice(-12)
+  while (history.length && JSON.stringify(history).length > 14000) history.splice(0, 2)
+  const response = await fetch('/api/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: options.prompt, history }), signal: options.signal,
+  })
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.error || `AI request failed (${response.status}). Please retry.`)
   }
-
-  const attempts: ModelAttemptLog[] = []
-
-  for (let i = 0; i < GEMINI_MODEL_LIST.length; i++) {
-    const currentModel = GEMINI_MODEL_LIST[i]
-    options.onModelAttempt?.(currentModel.id, i)
-
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel.id}:generateContent?key=${apiKey}`
-
-      const payload: {
-        contents: Array<{ parts: Array<{ text: string }> }>
-        systemInstruction?: { parts: Array<{ text: string }> }
-        generationConfig?: { temperature?: number; maxOutputTokens?: number }
-      } = {
-        contents: [
-          {
-            parts: [{ text: options.prompt }],
-          },
-        ],
+  if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) throw new Error('The AI endpoint is unavailable. Please contact the site administrator.')
+  const modelUsed = response.headers.get('X-AI-Model') || 'Gemini'
+  options.onModel?.(modelUsed)
+  const reader = response.body.getReader(), decoder = new TextDecoder()
+  let pending = '', text = '', finished = false
+  function consume(event: string) {
+    const raw = event.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n').trim()
+    if (!raw || raw === '[DONE]') return
+    const data = JSON.parse(raw)
+    if (data.error) throw new Error(data.error.message || 'AI stream interrupted.')
+    if (data.promptFeedback?.blockReason) throw new Error('The model could not answer that question. Please rephrase it.')
+    const candidate = data.candidates?.[0]
+    const reason = candidate?.finishReason
+    if (reason && !['STOP', 'MAX_TOKENS'].includes(reason)) throw new Error('The model could not complete this answer. Please rephrase your question.')
+    const chunk = (candidate?.content?.parts || []).filter((part: { thought?: boolean }) => !part.thought).map((part: { text?: string }) => part.text || '').join('')
+    if (chunk) { text += chunk; options.onText?.(text) }
+    if (reason === 'MAX_TOKENS') throw new Error('The answer reached its length limit. Ask a shorter question or request one part at a time.')
+    if (reason === 'STOP') finished = true
+  }
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      pending += decoder.decode(value, { stream: !done })
+      // Normalize CRLF after buffering, including boundaries split between network chunks.
+      pending = pending.replace(/\r\n/g, '\n')
+      let boundary: number
+      while ((boundary = pending.indexOf('\n\n')) !== -1) {
+        consume(pending.slice(0, boundary)); pending = pending.slice(boundary + 2)
       }
-
-      if (options.systemInstruction) {
-        payload.systemInstruction = {
-          parts: [{ text: options.systemInstruction }],
-        }
-      }
-
-      if (options.temperature !== undefined || options.maxOutputTokens !== undefined) {
-        payload.generationConfig = {
-          temperature: options.temperature ?? 0.7,
-          maxOutputTokens: options.maxOutputTokens ?? 1024,
-        }
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        const candidate = data.candidates?.[0]
-        const text =
-          candidate?.content?.parts?.[0]?.text ||
-          'No text content generated by the model.'
-
-        attempts.push({
-          modelId: currentModel.id,
-          success: true,
-          status: res.status,
-        })
-
-        return {
-          text,
-          modelUsed: currentModel.id,
-          attempts,
-        }
-      }
-
-      // If response is not ok, inspect error
-      let errorMsg = `HTTP ${res.status} ${res.statusText}`
-      try {
-        const errorData = await res.json()
-        if (errorData?.error?.message) {
-          errorMsg = errorData.error.message
-        }
-      } catch {
-        // Ignored if JSON parsing fails
-      }
-
-      attempts.push({
-        modelId: currentModel.id,
-        success: false,
-        status: res.status,
-        error: errorMsg,
-      })
-
-      const nextModel = GEMINI_MODEL_LIST[i + 1]
-      if (nextModel) {
-        console.warn(
-          `[Gemini Auto-Flow] Model '${currentModel.id}' failed (${errorMsg}). Auto-flowing to next model: '${nextModel.id}'...`
-        )
-        options.onAutoFlow?.(currentModel.id, errorMsg, nextModel.id)
-      }
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : 'Network error'
-      attempts.push({
-        modelId: currentModel.id,
-        success: false,
-        error: errMsg,
-      })
-
-      const nextModel = GEMINI_MODEL_LIST[i + 1]
-      if (nextModel) {
-        console.warn(
-          `[Gemini Auto-Flow] Model '${currentModel.id}' encountered error (${errMsg}). Auto-flowing to '${nextModel.id}'...`
-        )
-        options.onAutoFlow?.(currentModel.id, errMsg, nextModel.id)
-      }
+      if (done) { if (pending.trim()) consume(pending); break }
     }
-  }
-
-  // If we reached here, all models in the list failed
-  const summary = attempts
-    .map((a) => `• ${a.modelId}: ${a.error || `Status ${a.status}`}`)
-    .join('\n')
-
-  throw new Error(
-    `All Gemini models in the auto-flow list were exhausted or failed:\n${summary}`
-  )
+  } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
+  if (!text.trim()) throw new Error('No answer returned. Please rephrase your question.')
+  if (!finished) throw new Error('The connection ended before the answer completed. Please retry.')
+  return { text, modelUsed }
 }

@@ -77,3 +77,9 @@ The typeface is Inter, with a system-ui fallback.
 No profiles or health records are seeded. Create an account and add your own child profile. Reference tables stay empty until reviewed source data is published. Nutrition currently saves notes without automated advice. Test fixtures are isolated from application data.
 
 Requirements and the frontend handoff are in `docs/`.
+
+## Live AI chat
+
+Run `npm run dev` with `GEMINI_API_KEY` in the untracked `.env` file. Restart Vite after changing server environment values. Open `/ai`, or a child's Nutrition tab, to stream an answer. Nutrition chat keeps conversation context in memory and supports Stop and New chat. The server defaults to `gemini-3.5-flash-lite`; set `GEMINI_MODEL` to override it.
+
+The browser calls `/api/chat`; the key is never included in the client service. Do not use `VITE_GEMINI_API_KEY`. The development server provides this endpoint, and `api/chat.ts` provides a Node serverless entry point. Static-only hosting and `vite preview` do not provide the endpoint. Configure the server environment when deploying. Authentication and per-user rate limiting must be added before exposing this endpoint publicly. No deployment was performed as part of this change.

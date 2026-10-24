@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router"
 import { LogOut, User } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { demoCaregiver } from "@/data/mock"
 import { routes } from "@/app/routes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/features/auth"
@@ -39,7 +38,7 @@ export function UserMenuButton({
   const navigate = useNavigate()
   const { session, logout } = useAuth()
 
-  const displayName = session?.displayName || demoCaregiver.displayName
+  const displayName = session?.displayName || "Caregiver"
   const initials = getInitials(displayName)
 
   const handleSignOut = async () => {
@@ -54,7 +53,7 @@ export function UserMenuButton({
   if (compact) {
     return (
       <div
-        aria-label={`Signed in as ${displayName} (demo)`}
+        aria-label={`Signed in as ${displayName}`}
         role="img"
         className="flex size-9 items-center justify-center"
       >
@@ -102,12 +101,12 @@ export function UserMenuButton({
         <span className="truncate text-sm font-medium text-foreground">
           {displayName}
         </span>
-        <span className="text-xs text-muted-foreground">Demo account</span>
+        <span className="text-xs text-muted-foreground">Account</span>
       </div>
 
       <button
         type="button"
-        aria-label="Sign out of demo account"
+        aria-label="Sign out of account"
         onClick={handleSignOut}
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-lg",

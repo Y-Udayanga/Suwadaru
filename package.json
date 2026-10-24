@@ -11,7 +11,8 @@
     "lint": "oxlint",
     "test:auth": "node --test src/services/auth/auth.test.mjs supabase/tests/phase4-auth.test.mjs",
     "test:children": "node --test src/services/children/child-service.test.mjs supabase/tests/phase5-children.test.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:database": "node --test supabase/tests/phase2-core.test.mjs supabase/tests/phase3-rls.test.mjs supabase/tests/phase4-auth.test.mjs supabase/tests/phase5-children.test.mjs supabase/tests/health-records.test.mjs"
   },
   "imports": {
     "@/*": "./src/*"

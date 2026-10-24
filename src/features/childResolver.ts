@@ -15,30 +15,9 @@
  */
 
 import type { Child } from "@/types"
-import { AppError } from "@/services/contracts"
-import { demoChildren } from "@/data/mock"
+import { childService } from "@/services/children"
 
-const MOCK_DELAY = 300
-
-function delay(ms = MOCK_DELAY): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-/**
- * Resolve a child by ID. Throws `AppError("not_found")` for unknown IDs
- * so callers can display a safe empty/404 state (BRD BR-08, T-05).
- */
-export async function resolveChild(childId: string): Promise<Child> {
-  await delay()
-  const child = (demoChildren as readonly Child[]).find((c) => c.id === childId)
-  if (!child) {
-    throw new AppError(
-      "not_found",
-      `No child record found for ID "${childId}". Please select a valid child.`,
-    )
-  }
-  return child
-}
+export async function resolveChild(childId: string): Promise<Child> { return childService.get(childId) }
 
 /**
  * Compute completed calendar months between a date-of-birth and a reference

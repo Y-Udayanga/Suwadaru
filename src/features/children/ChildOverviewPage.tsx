@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react"
 import type { ChildFeaturePageProps } from "@/types"
-import { mockChildService } from "@/services/mock-child-service"
+import { childService } from "@/services/children"
 import { useChild } from "./useChild"
 import { routes } from "@/app/routes"
 import { PageHeader } from "@/components/layout/PageHeader"
@@ -43,9 +43,9 @@ import {
 } from "./validation"
 
 export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
-  const { updateChild } = useChild()
+  const { updateChild, children } = useChild()
 
-  const [child, setChild] = useState<Awaited<ReturnType<typeof mockChildService.get>> | null>(null)
+  const [fetchedChild, setChild] = useState<Awaited<ReturnType<typeof childService.get>> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -66,7 +66,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
   useEffect(() => {
     let mounted = true
 
-    mockChildService
+    childService
       .get(childId)
       .then((data) => {
         if (mounted) {
@@ -98,6 +98,8 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
     }
   }, [childId])
 
+  const child = children.find(c => c.id === childId) ?? fetchedChild
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 max-w-4xl" role="status" aria-live="polite">
@@ -112,7 +114,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
     return (
       <NotFoundPage
         title="Child profile not found"
-        description={`The requested child profile "${childId}" does not exist in the fictional demo records.`}
+        description={`The requested child profile "${childId}" is not accessible to your account.`}
         homeTo={routes.dashboard}
         homeLabel="Return to Dashboard"
       />
@@ -147,14 +149,14 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
       const parsedWeight =
         form.birthWeightKg.trim() !== ""
           ? Number(form.birthWeightKg)
-          : undefined
+          : null
 
       const updated = await updateChild(child.id, {
         name: form.name.trim(),
         dateOfBirth: form.dateOfBirth.trim(),
         sex: form.sex,
         birthWeightKg: parsedWeight,
-        clinicName: form.clinicName.trim() || undefined,
+        clinicName: form.clinicName.trim() || null,
       })
 
       setChild(updated)
@@ -206,14 +208,13 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
       {/* Demo Warning Notice */}
       <div
         role="region"
-        aria-label="Demo record notice"
+        aria-label="Profile record notice"
         className="rounded-xl border border-amber-200/90 bg-amber-50/80 p-3.5 text-xs text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
       >
         <div className="flex items-center gap-2.5">
           <ShieldAlert aria-hidden className="size-4 shrink-0 text-amber-700 dark:text-amber-400" />
           <span>
-            <strong>Fictional Demo Profile:</strong> This record contains synthetic
-            data for preview purposes. No real medical or identity data is stored.
+            <strong>Caregiver profile:</strong> Changes are saved to your account. Health entries remain parent-reported unless independently verified.
           </span>
         </div>
       </div>
@@ -366,7 +367,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
               Edit Child Demographics
             </CardTitle>
             <CardDescription>
-              Update demographic fields for {child.name}. Modifications persist in demo memory.
+              Update demographic fields for {child.name}. Changes are saved securely.
             </CardDescription>
           </CardHeader>
 

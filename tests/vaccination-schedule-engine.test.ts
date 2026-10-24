@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import { addCalendarMonths } from "../src/domain/health/vaccination/calendar.ts"
-import { getDemonstrationEpiSchedule } from "../src/domain/health/vaccination/demonstration-schedule.ts"
+import { getDemonstrationEpiSchedule } from "./fixtures/demonstration-schedule.ts"
 import {
   PRESENTATION_DUE_WINDOW_DAYS,
   buildChildVaccinationSchedule,

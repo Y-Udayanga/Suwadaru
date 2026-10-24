@@ -120,9 +120,7 @@ export function NotFoundPage({
 
         {/* Safety footnote */}
         <p className="text-xs text-muted-foreground/70">
-          SuwaDaru is a fictional demonstration. No health records are stored
-          at unrecognised addresses.
-        </p>
+          SuwaDaru stores records for your authorized caregiver account.</p>
       </div>
     </div>
   )

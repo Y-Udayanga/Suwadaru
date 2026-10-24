@@ -1,3 +1,4 @@
+import { watchRecords } from "@/services/realtime"
 /**
  * AppointmentsPage — Frontend B
  *
@@ -109,6 +110,7 @@ function isUpcoming(appointment: ClinicAppointment): boolean {
 function reducer(state: PageState, action: Action): PageState {
   switch (action.type) {
     case "LOADED":
+      if (state.phase === "ready") return { ...state, child: action.child, appointments: action.appointments }
       return {
         phase: "ready",
         child: action.child,
@@ -177,7 +179,7 @@ function reducer(state: PageState, action: Action): PageState {
           ? state.appointments.map((a) =>
               a.id === action.appointment.id ? action.appointment : a,
             )
-          : [...state.appointments, action.appointment],
+          : [...state.appointments.filter(a => a.id !== action.appointment.id), action.appointment],
         showForm: false,
       }
     case "CONFIRM_CANCEL":
@@ -661,15 +663,17 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
 
   useEffect(() => {
     let cancelled = false
+    let revision = 0
     async function load() {
+      const current = ++revision
       try {
         const [child, appointments] = await Promise.all([
           resolveChild(childId),
           appointmentService.list(childId),
         ])
-        if (!cancelled) dispatch({ type: "LOADED", child, appointments })
+        if (!cancelled && current === revision) dispatch({ type: "LOADED", child, appointments })
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && current === revision) {
           const message =
             err instanceof AppError
               ? err.message
@@ -678,10 +682,9 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
         }
       }
     }
-    load()
-    return () => {
-      cancelled = true
-    }
+    void load()
+    const stop = watchRecords(["clinic_appointments","children"], () => { void load() })
+    return () => { cancelled = true; stop() }
   }, [childId])
 
   // ── Loading ──────────────────────────────────────────────────────────────
@@ -963,7 +966,7 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
 
       {/* Demo Footer */}
       <footer className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
-        <strong>Demonstration prototype only (F0):</strong> Clinic appointments are stored in-memory for this demo session. No external reminders are dispatched. Always consult your official Child Health Development Record (CHDR) and your local Public Health Midwife (PHM).
+        <strong>Caregiver records:</strong> Clinic appointments are saved to your account. No external reminders are dispatched. Always consult your official Child Health Development Record (CHDR) and your local Public Health Midwife (PHM).
       </footer>
     </div>
   )

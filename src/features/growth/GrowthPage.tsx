@@ -1,3 +1,4 @@
+import { watchRecords } from "@/services/realtime"
 /**
  * GrowthPage — Frontend B
  *
@@ -7,7 +8,7 @@
  * SAFETY & GOVERNANCE (BRD §7.4, §10, §12, §14, T-08, T-09, T-10):
  *   - Prioritizes accurate input and source attribution over medical classification.
  *   - Reference curves are explicitly synthetic; prominent banner:
- *     "Illustrative only — not WHO clinical reference data"
+ *     "Reference curves appear only when verified source data is available."
  *   - Clinical status is always "not_assessed".
  *   - NEVER labels a child "healthy", "malnourished", "stunted", or "underweight" (BR-07).
  *   - Legend keys (+2 SD, +1 SD, median, -1 SD, -2 SD) are marked as illustrative placeholders.
@@ -56,10 +57,8 @@ import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { resolveChild, ageInMonths, formatAge } from "../childResolver"
 import { growthService } from "./growthService"
-import {
-  GROWTH_DISCLAIMER_TEXT,
-  CLINICAL_ASSESSMENT_NOTICE,
-} from "./mockData"
+const GROWTH_DISCLAIMER_TEXT = 'Measurements are caregiver-reported. Clinical status has not been assessed.'
+const CLINICAL_ASSESSMENT_NOTICE = 'Discuss growth concerns with your midwife or doctor.'
 import { formatCalendarDate, isFutureDate } from "../vaccinations/calendarDate"
 
 // ---------------------------------------------------------------------------
@@ -121,6 +120,7 @@ const initialForm = (today: string): AddFormState => ({
 function reducer(state: PageState, action: Action): PageState {
   switch (action.type) {
     case "LOADED":
+      if (state.phase === "ready") return { ...state, child: action.child, measurements: action.measurements, reference: action.reference }
       return {
         phase: "ready",
         child: action.child,
@@ -169,7 +169,7 @@ function reducer(state: PageState, action: Action): PageState {
     case "SUBMIT_DONE":
       return {
         ...state,
-        measurements: [...state.measurements, action.measurement].sort(
+        measurements: [...state.measurements.filter(m => m.id !== action.measurement.id), action.measurement].sort(
           (a, b) => a.measuredOn.localeCompare(b.measuredOn),
         ),
         showAddForm: false,
@@ -245,18 +245,20 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
 
   useEffect(() => {
     let cancelled = false
+    let revision = 0
     async function load() {
+      const current = ++revision
       try {
         const [child, measurements, reference] = await Promise.all([
           resolveChild(childId),
           growthService.list(childId),
           growthService.getReferenceSeries(childId),
         ])
-        if (!cancelled) {
+        if (!cancelled && current === revision) {
           dispatch({ type: "LOADED", child, measurements, reference })
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && current === revision) {
           const msg =
             err instanceof AppError
               ? err.message
@@ -265,10 +267,9 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
         }
       }
     }
-    load()
-    return () => {
-      cancelled = true
-    }
+    void load()
+    const stop = watchRecords(["growth_measurements","growth_references","children"], () => { void load() })
+    return () => { cancelled = true; stop() }
   }, [childId])
 
   const isAddFormOpen = state.phase === "ready" && state.showAddForm
@@ -445,7 +446,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
               </span>
             </div>
             <p className="text-xs leading-relaxed text-rose-900 dark:text-rose-200">
-              {CLINICAL_ASSESSMENT_NOTICE} Reference curves (+2SD, +1SD, Median, −1SD, −2SD) are synthetic illustrative placeholders. <strong>Never use fictional calculations to classify a child as &ldquo;healthy&rdquo;, &ldquo;malnourished&rdquo;, &ldquo;stunted&rdquo;, or &ldquo;underweight&rdquo;.</strong> Always consult your Public Health Midwife (PHM) or MOH clinic for professional pediatric growth assessments.
+              {CLINICAL_ASSESSMENT_NOTICE} {reference.points.length ? "Reference values come from the cited published dataset." : "No verified reference curves are currently available. Your measurements remain visible below."}
             </p>
           </div>
         </div>
@@ -814,7 +815,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
               Not Assessed
             </span>
             <span className="text-[10px] text-muted-foreground block">
-              F0 demo guardrail (BR-05)
+              Caregiver-reported measurements
             </span>
           </div>
         </div>
@@ -929,7 +930,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                   <>
                     <Line
                       dataKey="sdPlus2"
-                      name="+2 SD (Illustrative placeholder - not WHO)"
+                      name="+2 SD (reference)"
                       stroke="#E27D72"
                       strokeWidth={1}
                       strokeDasharray="4 4"
@@ -939,7 +940,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     />
                     <Line
                       dataKey="sdPlus1"
-                      name="+1 SD (Illustrative placeholder - not WHO)"
+                      name="+1 SD (reference)"
                       stroke="#F4C95D"
                       strokeWidth={1}
                       strokeDasharray="4 4"
@@ -949,7 +950,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     />
                     <Line
                       dataKey="median"
-                      name="Median (Illustrative placeholder - not WHO)"
+                      name="Median (reference)"
                       stroke="#BE123C"
                       strokeWidth={1.5}
                       strokeDasharray="6 3"
@@ -959,7 +960,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     />
                     <Line
                       dataKey="sdMinus1"
-                      name="-1 SD (Illustrative placeholder - not WHO)"
+                      name="-1 SD (reference)"
                       stroke="#F4C95D"
                       strokeWidth={1}
                       strokeDasharray="4 4"
@@ -969,7 +970,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     />
                     <Line
                       dataKey="sdMinus2"
-                      name="-2 SD (Illustrative placeholder - not WHO)"
+                      name="-2 SD (reference)"
                       stroke="#E27D72"
                       strokeWidth={1}
                       strokeDasharray="4 4"
@@ -1072,7 +1073,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                         </td>
                         <td className="p-3">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-900 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800">
-                            Not assessed (demo)
+                            Not assessed
                           </span>
                         </td>
                       </tr>

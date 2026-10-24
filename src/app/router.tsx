@@ -1,6 +1,6 @@
 import type { ComponentType } from "react"
 import { AuthCallbackPage } from "@/auth/AuthCallbackPage"
-import { ConnectedAuthRoutes, DemoAppProviders } from "./providers"
+import { ConnectedAuthRoutes, AccountAppProviders } from "./providers"
 import { Route, Routes, useParams } from "react-router"
 import { AppShell } from "@/components/layout/AppShell"
 import { NotFoundPage } from "@/components/layout/NotFoundPage"
@@ -49,7 +49,7 @@ function ChildFeatureRoute({
     return (
       <NotFoundPage
         title="Child profile not found"
-        description={`The requested child profile "${childId}" does not exist in the fictional demo records.`}
+        description={`The requested child profile "${childId}" is not accessible to this account.`}
         homeTo="/dashboard"
         homeLabel="Return to Dashboard"
       />
@@ -66,13 +66,13 @@ export function AppRouter() {
         <Route path="auth/callback" element={<AuthCallbackPage />} />
         <Route path="reset-password" element={<AuthCallbackPage resetPassword />} />
       </Route>
-      <Route element={<DemoAppProviders />}>
+      <Route element={<AccountAppProviders />}>
         <Route element={<PublicRoutes />}>
           <Route index element={<LandingPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="todos" element={<TodosPage />} />
+          <Route path="todos" element={<ProtectedRoute><TodosPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 

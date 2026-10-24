@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Loader2,
   ShieldAlert,
-  Sparkles,
 } from "lucide-react"
 import { useChild } from "./useChild"
 import { routes } from "@/app/routes"
@@ -51,16 +50,6 @@ export function AddChildPage() {
 
   const todayIso = getTodayIsoDate()
 
-  const handleQuickFill = () => {
-    setForm({
-      name: "Aruni",
-      dateOfBirth: "2025-08-10",
-      sex: "female",
-      birthWeightKg: "3.2",
-      clinicName: "Colombo East MOH Clinic",
-    })
-    setErrors({})
-  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -116,7 +105,7 @@ export function AddChildPage() {
     <div className="flex flex-col gap-6 max-w-3xl">
       <PageHeader
         title="Add Child Profile"
-        subtitle="Register a fictional child record to test vaccination schedules and growth tracking."
+        subtitle="Add a child profile to your account."
         actions={
           <Button
             variant="outline"
@@ -133,7 +122,7 @@ export function AddChildPage() {
       {/* Prominent Sample Data Privacy Notice */}
       <div
         role="region"
-        aria-label="Sample Data Notice"
+        aria-label="Profile privacy notice"
         className="rounded-xl border border-amber-200/90 bg-amber-50/80 p-4 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
       >
         <div className="flex items-start gap-3">
@@ -142,12 +131,10 @@ export function AddChildPage() {
           </div>
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-amber-900 dark:text-amber-200">
-              Demonstration Mode — Do not enter real child identity details
+              Child profile privacy
             </p>
             <p className="text-xs text-amber-800/90 dark:text-amber-300/80 leading-relaxed">
-              SuwaDaru is a client preview. Never enter genuine child health record
-              numbers, birth certificate numbers, or private medical documents. Use
-              fictional sample names and dates for demonstration.
+              Enter only the information needed for this profile. Records are accessible to authorized caregivers linked to the child.
             </p>
           </div>
         </div>
@@ -171,17 +158,7 @@ export function AddChildPage() {
                 <Baby aria-hidden className="size-5 text-primary" />
                 Child Demographics
               </CardTitle>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleQuickFill}
-                disabled={isSubmitting}
-                className="gap-1.5 text-xs text-primary hover:bg-primary/10"
-              >
-                <Sparkles aria-hidden className="size-3.5" />
-                Fill sample data
-              </Button>
+
             </div>
             <CardDescription>
               Birth date and sex determine WHO growth reference curves and EPI milestone calculations.
@@ -209,7 +186,7 @@ export function AddChildPage() {
                   id="child-name"
                   name="name"
                   type="text"
-                  placeholder="e.g. Aruni, Dulina, or Kavindu"
+                  placeholder="Child’s name"
                   value={form.name}
                   onChange={(e) => {
                     setForm((prev) => ({ ...prev, name: e.target.value }))

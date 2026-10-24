@@ -1,4 +1,4 @@
-import type { ScheduleDefinitionSet, ScheduleDoseDefinition } from "./types.ts"
+import type { ScheduleDefinitionSet, ScheduleDoseDefinition } from "../../src/domain/health/vaccination/types.ts"
 
 /**
  * Research baseline for software tests.

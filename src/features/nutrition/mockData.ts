@@ -1,129 +1,302 @@
 /**
- * Scripted nutrition mock responses for Frontend B.
+ * Curated Sri Lankan Pediatric Nutrition Educational Content & Scripted Responses.
  *
- * All responses are pre-written educational examples. No Gemini request is
- * made from the browser (BRD FR-042, BR-06). Responses are marked isDemo=true.
- * Emergency-style questions receive a safe professional-care referral (FR-043).
- *
- * INTEGRATION NOTE FOR FRONTEND A:
- *   When `nutritionService` from `@/services/contracts` is wired (B1 backend
- *   Gemini Edge Function), replace the mock adapter in `./nutritionService.ts`
- *   with the real service. This module may be removed at that point.
+ * SAFETY & GOVERNANCE CONSTRAINTS (BRD §7.5, §14, BR-06, BR-07, T-11):
+ *   - Educational examples only; no child-specific medical diagnoses, medication
+ *     prescriptions, or clinical therapeutic diet plans.
+ *   - For emergency or alarming symptoms, return respectful urgent professional-care
+ *     referral instead of feeding advice.
+ *   - Local-food guidance: well-cooked red rice, dhal (parippu), soft vegetables
+ *     (pumpkin/wattakka, carrots, gotukola), boneless fish (sprats/thalapath with
+ *     bones rigorously removed).
+ *   - Hygiene precautions: Hand washing with soap before feeding, boiled cooled
+ *     water, clean utensils, and covered food storage.
+ *   - Age-appropriate food texture and choking risk precautions:
+ *     No whole nuts, round grapes, hard seeds, or sharp fish bones.
+ *   - Mandatory disclaimer: "Demo responses — no Gemini API connected".
  */
 
-export type NutritionResponseCategory =
-  | "breastfeeding"
-  | "complementary"
-  | "local_foods"
-  | "meal_planner"
-  | "safe_referral"
-  | "general"
-
-type ScriptedResponse = {
-  keywords: string[]
-  category: NutritionResponseCategory
-  text: string
+export interface ScriptedNutritionResponse {
+  readonly keywords: readonly string[]
+  readonly category:
+    | "emergency_referral"
+    | "medication_refusal"
+    | "breastfeeding"
+    | "complementary_feeding"
+    | "local_foods"
+    | "hygiene_safety"
+    | "meal_planner"
+    | "general_education"
+  readonly text: string
 }
 
-const SCRIPTED_RESPONSES: ScriptedResponse[] = [
-  // Emergency / unsafe topics → safe referral (FR-043)
+export const SCRIPTED_RESPONSES: readonly ScriptedNutritionResponse[] = [
+  // ── 1. Emergency & Alarming Symptoms → Immediate Urgent Care Referral (FR-043, T-11)
   {
     keywords: [
       "emergency",
-      "choking",
+      "choking on",
+      "is choking",
       "not breathing",
       "unconscious",
       "seizure",
+      "convulsion",
       "vomiting blood",
+      "blood in stool",
       "diarrhea blood",
-      "severe",
-      "hospital",
+      "high fever",
+      "severe fever",
+      "lethargic",
+      "blue lips",
+      "cyanosis",
       "poison",
+      "swallowed coin",
+      "dehydrated",
+      "sunken eyes",
+      "refusing all fluids",
     ],
-    category: "safe_referral",
-    text: "⚠️ This sounds like it may need urgent medical attention. Please contact your nearest clinic, hospital, or call emergency services immediately. SuwaDaru is an educational companion and cannot provide emergency guidance. Always consult a doctor, nurse, or Public Health Midwife (PHM) for any health concern.\n\n[Demo response — no request was sent to any AI service]",
+    category: "emergency_referral",
+    text: `⚠️ URGENT MEDICAL ADVICE:
+This sounds like an alarming symptom that requires immediate, in-person medical evaluation.
+
+• Please take your child to the nearest hospital Emergency Treatment Unit (ETU) or consult an on-duty pediatrician/doctor immediately.
+• If your child is having difficulty breathing or choking, seek emergency assistance immediately.
+• SuwaDaru is strictly an educational tool and does not provide emergency triage or medical diagnoses.
+
+[Demo response — no request was sent to Gemini or any external AI]`,
   },
+
+  // ── 2. Medication & Dosing Refusal (BR-06) ──────────────────────────────
   {
-    keywords: ["medicine", "medication", "dose", "drug", "paracetamol", "antibiotic", "prescription"],
-    category: "safe_referral",
-    text: "Medication dosing and prescriptions must only be recommended by a qualified healthcare professional. SuwaDaru does not provide medication advice. Please consult your child's doctor or PHM.\n\n[Demo response — no request was sent to any AI service]",
+    keywords: [
+      "medicine",
+      "medication",
+      "dose",
+      "dosage",
+      "drug",
+      "paracetamol",
+      "panadol",
+      "antibiotic",
+      "cough syrup",
+      "prescription",
+    ],
+    category: "medication_refusal",
+    text: `Medication dosages, prescriptions, and pharmaceutical treatments must only be directed by a qualified physician, pediatrician, or Public Health Midwife (PHM).
+
+SuwaDaru strictly withholds all drug dosage guidance to ensure child safety (BR-06). Please consult your clinic or healthcare provider with your child's exact weight for proper clinical dosing.
+
+[Demo response — educational simulator only; no AI connected]`,
   },
-  // Breastfeeding
+
+  // ── 3. Breastfeeding & Infant Feeding (<6 Months) ───────────────────────
   {
-    keywords: ["breastfeed", "breast milk", "latch", "nursing", "breastmilk"],
+    keywords: [
+      "breastfeed",
+      "breast milk",
+      "breastmilk",
+      "latch",
+      "nursing",
+      "exclusive breastfeeding",
+      "supply",
+      "colostrum",
+    ],
     category: "breastfeeding",
-    text: "Breast milk is the ideal food for infants up to 6 months and provides important nutrients and immunity. The World Health Organization recommends exclusive breastfeeding for the first 6 months, then continuing alongside complementary foods up to 2 years and beyond.\n\nIf you have concerns about latch or supply, your Public Health Midwife (PHM) can offer hands-on support during home visits.\n\n[Demo response — educational example only, not clinical advice]",
+    text: `Breast milk is the ideal nutrition for infants. World Health Organization (WHO) and Sri Lankan Ministry of Health guidelines recommend:
+
+• Exclusive breastfeeding for the first 6 completed months (no water, formula, or herbal teas needed).
+• Continued breastfeeding on demand alongside nutrient-dense complementary foods up to 2 years and beyond.
+• Frequent feeds (8–12 times per 24 hours) support robust milk production.
+• For latch difficulties or nipple soreness, your area Public Health Midwife (PHM) provides free, hands-on support during clinic and home visits.
+
+[Demo response — general educational information; not a clinical consultation]`,
   },
+
+  // ── 4. Introduction of Complementary Foods (6–8 Months) ─────────────────
   {
-    keywords: ["formula", "bottle", "top feed"],
-    category: "breastfeeding",
-    text: "If breastfeeding is not possible or supplemented with formula, your PHM or doctor can guide you on age-appropriate formula options and safe preparation — including using boiled water and sterilised bottles. SuwaDaru does not recommend specific commercial brands.\n\n[Demo response — educational example only, not clinical advice]",
+    keywords: [
+      "start food",
+      "solid",
+      "first food",
+      "weaning",
+      "complementary",
+      "6 month",
+      "six month",
+    ],
+    category: "complementary_feeding",
+    text: `Introducing Complementary Foods at 6 Completed Months:
+
+• Developmental Readiness: Baby sits with support, has steady head control, and shows active interest in food.
+• Starting Consistency: Begin with smooth, thick porridge (not watery). Traditional rice congee (kenda) made with red or white rice is a gentle starter.
+• Nutritional Enrichment: Add well-cooked, mashed dhal (parippu) and pureed orange/yellow vegetables like pumpkin (wattakka) or carrot.
+• Hygiene: Wash hands thoroughly with soap before preparation. Use freshly boiled, cooled water.
+• Precautions: Do NOT add salt, sugar, honey (risk of infant botulism under 1 year), or artificial flavor enhancers.
+
+[Demo response — general educational guidance; consult your PHM for personalized feeding plans]`,
   },
-  // Complementary feeding age
+
+  // ── 5. Local Sri Lankan Foods & Preparation ─────────────────────────────
   {
-    keywords: ["start food", "solid", "when to introduce", "first food", "6 month"],
-    category: "complementary",
-    text: "Complementary foods are typically introduced around 6 months when the child shows developmental readiness — sitting with support, showing interest in food, and reduced tongue-thrust reflex. Begin with soft, smooth purees and progress to mashed and then soft lumps.\n\nIn Sri Lanka, traditional first foods often include well-cooked, mashed rice congee (kenda) with vegetables. Avoid salt, sugar, honey (under 1 year), and whole nuts. Your PHM can provide a personalised feeding guide.\n\n[Demo response — educational example only, not clinical advice]",
-  },
-  {
-    keywords: ["9 month", "8 month", "7 month"],
-    category: "complementary",
-    text: "At 7–9 months, most babies can manage soft mashed textures — mashed rice, well-cooked dhal, soft steamed vegetables like carrot or pumpkin, and mashed banana or papaya. Introduce one new food at a time and watch for reactions. Offer water in a cup.\n\n[Demo response — educational example only, not clinical advice]",
-  },
-  {
-    keywords: ["1 year", "12 month", "toddler"],
-    category: "complementary",
-    text: "By 12 months, most toddlers can join family meals with soft, finely cut portions. Avoid whole nuts, hard raw vegetables, large chunks, and foods with added salt and sugar. Sri Lankan family foods such as well-cooked rice, dhal, soft vegetables, and fish (bones removed) are generally suitable when prepared fresh and hygienic.\n\n[Demo response — educational example only, not clinical advice]",
-  },
-  // Local Sri Lankan foods
-  {
-    keywords: ["sri lanka", "local food", "dhal", "kenda", "rice", "jak fruit", "jackfruit", "gotukola", "murunga", "drumstick"],
+    keywords: [
+      "local food",
+      "sri lanka",
+      "rice",
+      "dhal",
+      "parippu",
+      "pumpkin",
+      "wattakka",
+      "gotukola",
+      "murunga",
+      "vegetable",
+      "congee",
+      "kenda",
+    ],
     category: "local_foods",
-    text: "Many traditional Sri Lankan foods are excellent for young children:\n\n• **Kenda (rice congee):** Easy-to-digest, ideal as a first food. Add well-cooked vegetables for nutrition.\n• **Dhal (parippu):** High in protein and iron; can be mashed smooth for young infants.\n• **Gotukola:** Rich in folate; serve finely chopped and cooked for older babies.\n• **Murunga (drumstick leaves):** Nutritious; cook leaves and add to rice or soup.\n• **Jak fruit (kos):** Soft ripe jak is sweet and suitable as a finger food for older babies.\n• **Fish:** An excellent protein source; ensure all bones are carefully removed.\n\n[Demo response — educational food information only, not a prescribed diet plan]",
+    text: `Nutritious Sri Lankan Foods for Growing Children:
+
+• Red Rice & Porridge (Kenda): Excellent energy base. Cook till very soft and mash with a fork.
+• Dhal (Parippu): Rich in plant protein and iron. Cook thoroughly with mild cumin or turmeric; mash smoothly for infants.
+• Pumpkin (Wattakka) & Carrots: Packed with Vitamin A for vision and immune health. Steam and mash.
+• Green Leafy Vegetables (Gotukola, Murunga leaves): Excellent sources of folate, iron, and minerals. Wash thoroughly, cook well, and chop very finely before mixing with rice.
+• Preparation Tip: Adding a tiny drop of coconut oil or butter aids absorption of fat-soluble vitamins (A, D, E).
+
+[Demo response — educational food guidance; no AI request made]`,
   },
-  // Allergies
+
+  // ── 6. Animal Proteins & Boneless Fish Preparation ──────────────────────
   {
-    keywords: ["allergy", "allergic", "rash", "hives", "swelling"],
-    category: "safe_referral",
-    text: "If you notice a rash, swelling, or difficulty breathing after introducing a new food, stop offering that food and consult your doctor or PHM promptly. Allergy assessment should always be done by a qualified professional.\n\n[Demo response — no request was sent to any AI service]",
-  },
-  // Iron / protein
-  {
-    keywords: ["iron", "anaemia", "protein", "fish", "egg", "chicken"],
+    keywords: [
+      "fish",
+      "sprats",
+      "thalapath",
+      "egg",
+      "egg yolk",
+      "chicken",
+      "protein",
+      "iron",
+      "meat",
+    ],
     category: "local_foods",
-    text: "Iron-rich foods are important for growing children. Good local sources include dhal, green leafy vegetables (like gotukola), small dried fish (Maldive fish in small amounts), egg yolk, and soft cooked chicken or fish (bones removed). Pairing iron-rich foods with vitamin C sources (like a small piece of papaya or tomato) can help absorption.\n\n[Demo response — educational food information only, not a prescribed diet plan]",
+    text: `Animal Protein & Choking Prevention (Fish & Eggs):
+
+• Fish: High-quality protein and Omega-3 fatty acids. White fish or fresh sprats (heads/insides removed) are wonderful.
+  ⚠️ CRITICAL CHOKING PRECAUTION: Always flake fish carefully with clean fingers to verify all bones are 100% removed before feeding.
+• Egg: Start with well-cooked hard-boiled egg yolk from 6–7 months. Introduce egg white around 8–9 months and monitor for allergic reactions.
+• Chicken: Soft minced or shredded chicken cooked in a mild vegetable stew.
+• Iron Pairing: Pair protein meals with a small piece of ripe papaya or mashed banana to promote iron absorption.
+
+[Demo response — educational food safety information; no AI connected]`,
   },
-  // Meal planner suggestion
+
+  // ── 7. Food Texture Progression & Choking Hazards ──────────────────────
   {
-    keywords: ["meal plan", "weekly", "what to feed", "daily", "schedule"],
+    keywords: [
+      "texture",
+      "choking",
+      "lumps",
+      "finger food",
+      "hazard",
+      "chewing",
+      "gagging",
+    ],
+    category: "hygiene_safety",
+    text: `Texture Progression & Choking Safety:
+
+• 6–7 Months: Smooth, thick purees and thick mashes without hard chunks.
+• 8–9 Months: Mashed foods with soft small lumps; encourages chewing and jaw muscle development.
+• 10–12 Months: Soft finger foods (steamed carrot batons, soft ripe banana pieces, soft sweet potato).
+• Choking Hazards to AVOID completely:
+  ❌ Whole nuts (peanuts, cashews)
+  ❌ Round uncut grapes or berries (must be quartered lengthwise)
+  ❌ Raw hard carrots or apple wedges (must be grated or steamed soft)
+  ❌ Fish bones and uninspected seafood
+
+Always supervise your child during all meals; never leave a child eating unattended.
+
+[Demo response — educational hygiene and safety guidelines; no AI connected]`,
+  },
+
+  // ── 8. Water, Fluids & Hygiene Precautions ──────────────────────────────
+  {
+    keywords: [
+      "water",
+      "fluids",
+      "cup",
+      "hygiene",
+      "clean",
+      "wash",
+      "storage",
+      "diarrhea",
+      "vomiting",
+    ],
+    category: "hygiene_safety",
+    text: `Hydration and Food Hygiene Precautions:
+
+• Under 6 months: Exclusive breast milk supplies all necessary hydration.
+• 6+ months: Offer small sips of boiled, cooled drinking water in a cup with or after meals.
+• Handwashing: Always wash caregiver hands and child's hands with soap and water before meal preparation and feeding.
+• Storage: Prepare infant foods fresh whenever possible. Store leftovers covered in a cool place or refrigerator and discard food left at room temperature for over 2 hours.
+
+[Demo response — educational hygiene guidance; no AI connected]`,
+  },
+
+  // ── 9. Illustrative Meal Planner (9–12 Months Demo) ─────────────────────
+  {
+    keywords: [
+      "meal plan",
+      "menu",
+      "sample day",
+      "routine",
+      "what to feed today",
+      "schedule",
+    ],
     category: "meal_planner",
-    text: "Here is a simple illustrative example for a 9-month-old (fictional demonstration only):\n\n**Morning:** Soft rice porridge with mashed carrot and a little dhal\n**Mid-morning snack:** Mashed ripe banana\n**Lunch:** Well-mashed rice, dhal, finely chopped cooked spinach\n**Afternoon snack:** Small piece of soft papaya\n**Evening:** Rice porridge with small amount of flaked fish (bones completely removed)\n\nAlways offer water. Adjust textures for your child's readiness. Your PHM can create a real feeding plan based on your child's needs.\n\n[Demo example — not a prescription or clinical guidance]",
+    text: `Sample 1-Day Complementary Feeding Outline (9–12 Months Demo):
+
+• Morning: Soft red rice porridge mashed with steamed pumpkin and a teaspoon of cooked dhal.
+• Mid-morning: Sliced soft ripe banana or mashed papaya.
+• Lunch: Well-mashed rice with stewed gotukola, dhal, and flaked boneless fish (thoroughly checked for bones).
+• Afternoon: Small portion of curd with a touch of fruit mash.
+• Evening: Warm mashed sweet potato with cooked egg yolk or soft vegetable congee.
+• Fluids: Breastfeed on demand; offer small sips of boiled, cooled water.
+
+* Note: Every child progresses at their own pace. Consult your PHM for personalized growth-monitored meal planning.
+
+[Demo response — illustrative example only; not a therapeutic diet plan]`,
   },
-]
+] as const
 
-const GENERAL_FALLBACK =
-  "SuwaDaru provides general educational nutrition information for Sri Lankan caregivers. For personalised guidance on your child's feeding, please consult your Public Health Midwife (PHM) or doctor.\n\n[Demo response — educational example only, not clinical advice]"
+const GENERAL_EDUCATIONAL_FALLBACK = `SuwaDaru Nutrition provides general educational guidance based on standard Sri Lankan pediatric recommendations:
 
-export function findScriptedResponse(userText: string): {
+• Promote age-appropriate textures (thick porridge at 6 mo, mashed lumps at 8 mo, family foods at 12 mo).
+• Emphasize diverse local foods: red rice, dhal, pumpkin, gotukola, well-cooked egg, and bone-inspected fish.
+• Observe strict hygiene (handwashing, boiled water) and avoid choking hazards.
+• For tailored dietary advice or weight concerns, please consult your Public Health Midwife (PHM) or pediatrician.
+
+[Demo responses — no Gemini API connected]`;
+
+/**
+ * Pure response selector for nutrition queries.
+ */
+export function findNutritionResponse(userQuery: string): {
   text: string
-  category: NutritionResponseCategory
+  category: ScriptedNutritionResponse["category"]
 } {
-  const lower = userText.toLowerCase()
-  for (const response of SCRIPTED_RESPONSES) {
-    if (response.keywords.some((kw) => lower.includes(kw))) {
-      return { text: response.text, category: response.category }
+  const normalized = userQuery.toLowerCase().trim()
+  for (const item of SCRIPTED_RESPONSES) {
+    if (item.keywords.some((kw) => normalized.includes(kw))) {
+      return { text: item.text, category: item.category }
     }
   }
-  return { text: GENERAL_FALLBACK, category: "general" }
+  return { text: GENERAL_EDUCATIONAL_FALLBACK, category: "general_education" }
 }
 
-// Suggested prompts shown on first-use / empty state (FR-040).
-export const SUGGESTED_PROMPTS: string[] = [
-  "What are good first foods for a 6-month-old?",
-  "Which local Sri Lankan foods are good for babies?",
-  "How long should I breastfeed?",
-  "What can I give a 9-month-old for lunch?",
-  "What are iron-rich foods for toddlers?",
-  "When can I introduce eggs?",
-  "Sample weekly meal plan for a 1-year-old",
-]
+/** Suggested prompt chips adapted to age contexts (FR-040). */
+export const SUGGESTED_NUTRITION_PROMPTS = [
+  "What are healthy first foods for a 6-month-old?",
+  "How to prepare dhal and vegetables safely?",
+  "How do I prepare fish without choking risk?",
+  "What textures are safe for an 8-month-old?",
+  "Sample daily meal plan for a 1-year-old",
+  "Food hygiene and safe water guidelines",
+  "When should I introduce eggs?",
+] as const

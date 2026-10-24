@@ -49,7 +49,7 @@ function ChildFeatureRoute({
     return (
       <NotFoundPage
         title="Child profile not found"
-        description={`The requested child profile "${childId}" does not exist in the fictional demo records.`}
+        description="The requested child profile was not found for this caregiver."
         homeTo="/dashboard"
         homeLabel="Return to Dashboard"
       />

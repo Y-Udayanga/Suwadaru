@@ -445,7 +445,11 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
               </span>
             </div>
             <p className="text-xs leading-relaxed text-rose-900 dark:text-rose-200">
-              {CLINICAL_ASSESSMENT_NOTICE} Reference curves (+2SD, +1SD, Median, −1SD, −2SD) are synthetic illustrative placeholders. <strong>Never use fictional calculations to classify a child as &ldquo;healthy&rdquo;, &ldquo;malnourished&rdquo;, &ldquo;stunted&rdquo;, or &ldquo;underweight&rdquo;.</strong> Always consult your Public Health Midwife (PHM) or MOH clinic for professional pediatric growth assessments.
+              {CLINICAL_ASSESSMENT_NOTICE}{" "}
+              {reference.provenance === "who"
+                ? "Reference curves are published WHO weight-for-age values at exact days for these month labels. They are not a diagnosis."
+                : "Reference curves (+2SD, +1SD, Median, −1SD, −2SD) are synthetic illustrative placeholders."}{" "}
+              <strong>Never use these curves to classify a child as &ldquo;healthy&rdquo;, &ldquo;malnourished&rdquo;, &ldquo;stunted&rdquo;, or &ldquo;underweight&rdquo;.</strong> Always consult your Public Health Midwife (PHM) or MOH clinic for professional pediatric growth assessments.
             </p>
           </div>
         </div>

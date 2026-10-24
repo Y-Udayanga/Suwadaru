@@ -13,7 +13,25 @@
 
 import type { GrowthService } from "@/services/contracts"
 import { AppError } from "@/services/contracts"
-import type { AddMeasurementInput, GrowthMeasurement } from "@/types"
+import {
+  addCalendarMonths,
+  daysBetween,
+} from "@/domain/health/vaccination"
+import {
+  officialWhoWeightForAgeDataset,
+  rowAtExactDay,
+  WHO_WFA_PROVENANCE,
+} from "@/domain/health/growth"
+import {
+  addGrowthMeasurement,
+  getGrowthAssessment,
+  getGrowthMeasurements,
+  isPersistedChildId,
+  requireCaregiverSession,
+} from "@/services/health"
+import { supabase } from "@/utils/supabase"
+import type { AddMeasurementInput, GrowthMeasurement, GrowthReferenceSeries } from "@/types"
+import type { ChildSex } from "@/types"
 import { demoChildren } from "@/data/mock"
 import {
   MOCK_MEASUREMENTS,
@@ -39,11 +57,19 @@ function delay(ms = MOCK_DELAY): Promise<void> {
 
 export const growthService: GrowthService = {
   async list(childId) {
+    if (isPersistedChildId(childId)) {
+      await requireCaregiverSession()
+      return getGrowthMeasurements(supabase, childId)
+    }
     await delay()
     return sessionMeasurements[childId] ?? []
   },
 
   async addMeasurement(input: AddMeasurementInput) {
+    if (isPersistedChildId(input.childId)) {
+      await requireCaregiverSession()
+      return addGrowthMeasurement(supabase, input)
+    }
     await delay()
     const today = new Date().toISOString().slice(0, 10)
 
@@ -120,6 +146,18 @@ export const growthService: GrowthService = {
   },
 
   async getReferenceSeries(childId) {
+    if (isPersistedChildId(childId)) {
+      await requireCaregiverSession()
+      const { data, error } = await supabase
+        .from("children")
+        .select("sex")
+        .eq("id", childId)
+        .maybeSingle()
+      if (error || !data || (data.sex !== "male" && data.sex !== "female")) {
+        throw new AppError("not_found", "The child was not found.")
+      }
+      return whoReferenceSeries(childId, data.sex)
+    }
     await delay()
     let sex = DEMO_CHILD_SEX[childId]
     if (!sex) {
@@ -128,4 +166,46 @@ export const growthService: GrowthService = {
     }
     return getSyntheticReferenceSeries(childId, sex ?? "female")
   },
+}
+
+const CHART_MONTHS = [0, 1, 2, 3, 4, 6, 9, 12, 18, 24, 36, 48, 60]
+const REFERENCE_EPOCH = "2001-01-01"
+
+async function whoReferenceSeries(
+  childId: string,
+  sex: ChildSex,
+): Promise<GrowthReferenceSeries> {
+  const assessment = await getGrowthAssessment(supabase, childId)
+  const dataset = officialWhoWeightForAgeDataset()
+  const table = dataset ? (sex === "male" ? dataset.male : dataset.female) : null
+  const points = []
+  if (table) {
+    for (const ageMonths of CHART_MONTHS) {
+      const dated = addCalendarMonths(REFERENCE_EPOCH, ageMonths)
+      if (!dated.ok) continue
+      const row = rowAtExactDay(table, daysBetween(REFERENCE_EPOCH, dated.value))
+      if (!row) continue
+      points.push({
+        ageMonths,
+        sdMinus2Kg: row.sdMinus2Kg,
+        sdMinus1Kg: row.sdMinus1Kg,
+        medianKg: row.medianKg,
+        sdPlus1Kg: row.sdPlus1Kg,
+        sdPlus2Kg: row.sdPlus2Kg,
+      })
+    }
+  }
+
+  return {
+    childId,
+    indicator: "weight_for_age",
+    sex,
+    provenance: table ? "who" : "synthetic_demo",
+    sourceLabel: table
+      ? `${WHO_WFA_PROVENANCE.sourceTitle}. ${assessment.interpretation.message} Clinical category remains not assessed.`
+      : "WHO weight-for-age table was not available. No reference curve is shown.",
+    sourceVersion: table ? `who-wfa-expanded-${WHO_WFA_PROVENANCE.files[0]?.retrievedOn ?? "unpinned"}` : "unavailable",
+    clinicalStatus: "not_assessed",
+    points,
+  }
 }

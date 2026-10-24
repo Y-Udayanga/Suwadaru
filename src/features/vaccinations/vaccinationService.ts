@@ -13,6 +13,15 @@
 
 import type { VaccinationService } from "@/services/contracts"
 import { AppError } from "@/services/contracts"
+import {
+  addVaccinationRecord,
+  getVaccinationRecords,
+  getVaccineSchedule,
+  isPersistedChildId,
+  requireCaregiverSession,
+  updateVaccinationRecord,
+} from "@/services/health"
+import { supabase } from "@/utils/supabase"
 import type { AddReportedDoseInput, VaccinationRecord } from "@/types"
 import { demoChildren } from "@/data/mock"
 import {
@@ -36,6 +45,10 @@ function delay(ms: number = MOCK_DELAY): Promise<void> {
 
 export const vaccinationService: VaccinationService = {
   async getSchedule(childId) {
+    if (isPersistedChildId(childId)) {
+      await requireCaregiverSession()
+      return getVaccineSchedule(supabase, childId)
+    }
     await delay()
     let dob = CHILD_DOBS[childId]
     if (!dob) {
@@ -54,12 +67,27 @@ export const vaccinationService: VaccinationService = {
   },
 
   async getRecords(childId) {
+    if (isPersistedChildId(childId)) {
+      await requireCaregiverSession()
+      return getVaccinationRecords(supabase, childId)
+    }
     await delay()
     // Unknown child returns an empty array; caller handles display safely.
     return sessionRecords[childId] ?? []
   },
 
   async addReportedDose(input: AddReportedDoseInput) {
+    if (isPersistedChildId(input.childId)) {
+      await requireCaregiverSession()
+      const existing = await getVaccinationRecords(supabase, input.childId)
+      const prior = existing.find((record) => record.vaccineCode === input.vaccineCode)
+      if (prior) {
+        return updateVaccinationRecord(supabase, prior.id, {
+          administeredOn: input.administeredOn,
+        })
+      }
+      return addVaccinationRecord(supabase, input)
+    }
     await delay()
     const today = new Date().toISOString().slice(0, 10)
 

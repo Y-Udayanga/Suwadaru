@@ -1,0 +1,7 @@
+# Local project id. Link the remote project with the Supabase CLI before deploying.
+project_id = "suwadaru"
+
+# The nutrition assistant is invoked with the signed-in caregiver JWT.
+# Leave verification on. Do not deploy this function with --no-verify-jwt.
+[functions.nutrition-assistant]
+verify_jwt = true

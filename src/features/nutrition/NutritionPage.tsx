@@ -31,6 +31,7 @@ import {
 import type { ChildFeaturePageProps, ChatMessage } from "@/types"
 import type { Child } from "@/types"
 import { AppError } from "@/services/contracts"
+import { askNutritionAssistant, isPersistedChildId } from "@/services/health"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { resolveChild, ageInMonths, formatAge } from "../childResolver"
@@ -229,16 +230,18 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
     dispatch({ type: "SEND_START", userMessage, attemptedText: trimmed })
 
     try {
-      const assistantMessage = await nutritionService.getDemoResponse({
-        childId: child.id,
-        text: trimmed,
-      })
+      const assistantMessage = isPersistedChildId(child.id)
+        ? (await askNutritionAssistant(child.id, trimmed)).message
+        : await nutritionService.getDemoResponse({
+            childId: child.id,
+            text: trimmed,
+          })
       dispatch({ type: "SEND_DONE", assistantMessage })
     } catch (err) {
       const msg =
         err instanceof AppError
           ? err.message
-          : "Unable to retrieve simulated response. Please try again."
+          : "Nutrition education is temporarily unavailable. Please try again later or ask your Public Health Midwife."
       dispatch({ type: "SEND_ERROR", error: msg })
     }
   }
@@ -270,6 +273,11 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm tracking-tight text-teal-950 dark:text-teal-100">
+                Feeding education — not a diagnosis or a medicine recommendation
+              </span>
+              <span className="rounded-md bg-teal-100 dark:bg-teal-900/80 px-2 py-0.5 text-xs font-mono font-medium text-teal-800 dark:text-teal-200">
+                Education
               <span className="font-bold text-sm tracking-tight text-foreground">
                 Demo responses — no Gemini API connected
               </span>
@@ -406,6 +414,7 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
                       isUser ? "justify-end" : "justify-start",
                     )}
                   >
+                    <span>{isUser ? `${child.name}'s caregiver` : msg.isDemo ? "SuwaDaru Simulator" : "SuwaDaru"}</span>
                     <span>{isUser ? `${child.name}'s caregiver` : "SuwaDaru AI (සුවදරු AI)"}</span>
                     <span>·</span>
                     <time dateTime={msg.createdAt}>
@@ -417,7 +426,9 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
                     {!isUser && (
                       <>
                         <span>·</span>
-                        <span className="font-mono text-muted-foreground/80">Demo</span>
+                        <span className="font-mono text-muted-foreground/80">
+                          {msg.isDemo ? "Demonstration" : "Education"}
+                        </span>
                       </>
                     )}
                   </div>
@@ -528,7 +539,7 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
           </form>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1.5 px-1">
             <span>Press <kbd className="font-mono bg-muted px-1 rounded">Enter</kbd> to submit · <kbd className="font-mono bg-muted px-1 rounded">Shift + Enter</kbd> for newline</span>
-            <span>Simulated demo</span>
+            <span>Gemini stays on the server</span>
           </div>
         </div>
       </div>

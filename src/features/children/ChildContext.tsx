@@ -8,7 +8,15 @@ import {
 } from "react"
 import { useLocation, useNavigate } from "react-router"
 import type { Child, CreateChildInput, UpdateChildInput } from "@/types"
+import { AppError } from "@/services/contracts"
 import { mockChildService } from "@/services/mock-child-service"
+import {
+  createCaregiverChild,
+  hasCaregiverSession,
+  listCaregiverChildren,
+  updateCaregiverChild,
+} from "@/services/health"
+import { supabase } from "@/utils/supabase"
 import { routes } from "@/app/routes"
 
 export interface ChildContextValue {
@@ -47,26 +55,32 @@ export function ChildProvider({ children }: ChildProviderProps) {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Initial load from mock service
+  // Load caregiver children when a Supabase session exists. Otherwise keep the demo list.
   useEffect(() => {
     let mounted = true
-    mockChildService
-      .list()
-      .then((list) => {
+    async function load() {
+      try {
+        const remote = await listCaregiverChildren()
+        const list = remote ?? (await mockChildService.list())
         if (mounted) {
           setChildList(list)
+          setError(null)
           setIsLoading(false)
         }
-      })
-      .catch(() => {
+      } catch (err) {
         if (mounted) {
-          setError("Failed to load child profiles.")
+          setError(err instanceof AppError ? err.message : "Failed to load child profiles.")
           setIsLoading(false)
         }
-      })
-
+      }
+    }
+    void load()
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      if (mounted) void load()
+    })
     return () => {
       mounted = false
+      data.subscription.unsubscribe()
     }
   }, [])
 
@@ -109,7 +123,9 @@ export function ChildProvider({ children }: ChildProviderProps) {
     async (input: CreateChildInput): Promise<Child> => {
       setIsLoading(true)
       try {
-        const created = await mockChildService.create(input)
+        const created = (await hasCaregiverSession())
+          ? await createCaregiverChild(input)
+          : await mockChildService.create(input)
         setChildList((prev) => [...prev, created])
         setSelectedChildId(created.id)
         return created
@@ -124,7 +140,9 @@ export function ChildProvider({ children }: ChildProviderProps) {
     async (childId: string, input: UpdateChildInput): Promise<Child> => {
       setIsLoading(true)
       try {
-        const updated = await mockChildService.update(childId, input)
+        const updated = (await hasCaregiverSession())
+          ? await updateCaregiverChild(childId, input)
+          : await mockChildService.update(childId, input)
         setChildList((prev) =>
           prev.map((c) => (c.id === childId ? updated : c)),
         )
@@ -145,8 +163,8 @@ export function ChildProvider({ children }: ChildProviderProps) {
     setIsLoading(true)
     setError(null)
     try {
-      const list = await mockChildService.list()
-      setChildList(list)
+      const remote = await listCaregiverChildren()
+      setChildList(remote ?? (await mockChildService.list()))
     } catch {
       setError("Failed to load child profiles.")
     } finally {

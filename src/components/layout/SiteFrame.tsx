@@ -1,85 +1,101 @@
 import type { ReactNode } from "react"
 import { NavLink, Outlet } from "react-router"
-import { HeartPulse } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
+import { AppLogo } from "./AppLogo"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { LanguageToggle } from "@/components/theme/LanguageToggle"
+import { AmbientBackground } from "@/components/common/AmbientBackground"
+import { useLanguage, type TranslationKey } from "@/hooks/useLanguage"
 
-type NavItem = {
-  to: string
-  label: string
-  end?: boolean
-}
+// ---------------------------------------------------------------------------
+// PublicFrame — wrapper for unauthenticated pages (landing, login, register)
+// ---------------------------------------------------------------------------
 
-const linkClassName = ({ isActive }: { isActive: boolean }) =>
+const publicNavDef: { to: string; labelKey: TranslationKey; fallback: string; end?: boolean }[] = [
+  { to: routes.home, labelKey: "nav.home", fallback: "Home", end: true },
+  { to: routes.login, labelKey: "nav.signIn", fallback: "Sign in", end: true },
+  { to: routes.register, labelKey: "nav.register", fallback: "Register", end: true },
+  { to: routes.forgotPassword, labelKey: "nav.recovery", fallback: "Reset password", end: true },
+]
+
+const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground hover:bg-mint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    isActive && "bg-primary text-primary-foreground hover:bg-primary",
+    "inline-flex min-h-10 items-center rounded-xl px-3.5 text-sm font-semibold",
+    "transition-all duration-200",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    isActive
+      ? "bg-primary text-white shadow-sm hover:bg-primary/95 active:scale-95"
+      : "text-foreground/80 hover:bg-accent/70 hover:text-foreground",
   )
 
-export function SiteFrame({
-  navLabel,
-  items,
-  children,
-}: {
-  navLabel: string
-  items: readonly NavItem[]
-  children: ReactNode
-}) {
+function PublicHeader() {
+  const { t } = useLanguage()
+
   return (
-    <div className="relative flex min-h-svh min-w-0 flex-col bg-background text-foreground">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/75 shadow-xs transition-colors duration-200">
+      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <AppLogo asLink />
+
+        {/* Spacer */}
+        <div className="flex-1" />
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <nav aria-label="Public navigation">
+            <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
+              {publicNavDef.map((item) => (
+                <li key={item.to}>
+                  <NavLink to={item.to} end={item.end} className={publicLinkClass}>
+                    {t(item.labelKey, item.fallback)}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+  )
+}
+
+
+export function PublicLayout({ children }: { children: ReactNode }) {
+  const { language } = useLanguage()
+  const isSi = language === "si"
+
+  return (
+    <div className="relative flex min-h-svh min-w-0 flex-col bg-background/30 text-foreground transition-colors duration-300">
+      <AmbientBackground />
+      {/* Skip link */}
+
       <a
         href="#main"
-        className="absolute top-3 left-3 z-10 -translate-y-16 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={cn(
+          "absolute top-3 left-3 z-50 -translate-y-20 rounded-lg",
+          "bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg",
+          "focus:translate-y-0",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+          "transition-transform duration-150",
+        )}
       >
-        Skip to content
+        {isSi ? "ප්‍රධාන අන්තර්ගතයට යන්න" : "Skip to content"}
       </a>
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
-          <NavLink
-            to={routes.home}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <HeartPulse aria-hidden="true" />
-            SuwaDaru
-          </NavLink>
-          <p className="text-sm text-muted-foreground">Companion preview</p>
-        </div>
-        <nav aria-label={navLabel} className="mx-auto w-full max-w-6xl min-w-0 px-4 pb-3">
-          <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
-            {items.map((item) => (
-              <li key={item.to}>
-                <NavLink to={item.to} end={item.end} className={linkClassName}>
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </header>
+
+      <PublicHeader />
+
       <main id="main" className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 py-6">
         {children}
       </main>
-      <footer className="mx-auto w-full max-w-6xl min-w-0 px-4 py-6 text-sm text-muted-foreground">
-        SuwaDaru is a fictional companion preview. It is not a clinical record,
-        a government service, or a substitute for a midwife or doctor.
+
+      <footer className="border-t border-border bg-card/60 backdrop-blur-sm px-4 py-6">
+        <div className="mx-auto max-w-6xl text-xs text-muted-foreground text-center sm:text-left leading-relaxed">
+          {isSi
+            ? "සුවදරු යනු දෙමාපිය සහ සත්කාරක අත්වැලකි. මෙය සායනික වාර්තාවක්, රජයේ නිල සේවාවක් හෝ වෛද්‍යවරයෙකුගේ හෝ පවුල් සෞඛ්‍ය සේවා නිලධාරිනියගේ උපදෙස් වෙනුවට භාවිත කළ හැකි ආදේශකයක් නොවේ."
+            : "SuwaDaru is a caregiver companion. Not a clinical record, a government service, or a substitute for a midwife or doctor."}
+        </div>
       </footer>
     </div>
-  )
-}
-
-const publicNav = [
-  { to: routes.home, label: "Home", end: true },
-  { to: routes.login, label: "Sign in", end: true },
-  { to: routes.register, label: "Register", end: true },
-  { to: routes.forgotPassword, label: "Recovery preview", end: true },
-  { to: routes.dashboard, label: "Dashboard", end: true },
-] as const satisfies readonly NavItem[]
-
-export function PublicLayout({ children }: { children: ReactNode }) {
-  return (
-    <SiteFrame navLabel="Public" items={publicNav}>
-      {children}
-    </SiteFrame>
   )
 }
 
@@ -90,3 +106,6 @@ export function PublicRoutes() {
     </PublicLayout>
   )
 }
+
+// Keep SiteFrame exported for backwards-compat in case something imports it
+export { PublicLayout as SiteFrame }

@@ -34,3 +34,6 @@ dist-ssr
 .agents/**
 skills-lock.json
 
+# Phase documentation
+docs/Phase6_Frontend_Integration.md
+docs/Phase7_Backend_Audit.md

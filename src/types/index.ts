@@ -25,6 +25,4 @@ export type {
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from "./appointment"
-export type { ChatMessage, DemoNutritionRequest } from "./nutrition"
-export type { DemoSession, DemoSignInInput } from "./session"
 export type { ChildFeaturePageProps } from "./routes"

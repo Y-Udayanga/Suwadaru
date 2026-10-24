@@ -26,12 +26,14 @@ test('Phase 4: atomic profile provisioning, backfill and RLS', async t => {
     `)
     const migrations = new URL('../migrations/', import.meta.url)
     const files = (await readdir(migrations)).filter(file => file.endsWith('.sql')).sort()
-    for (const file of files.filter(file => !file.includes('phase4'))) {
+    const provisioning = files.find(file => file.includes('phase4'))
+    assert.ok(provisioning, 'Phase 4 migration must exist')
+    for (const file of files.filter(file => file < provisioning)) {
       await db.exec(await readFile(new URL(file, migrations), 'utf8'))
     }
     await db.query('insert into auth.users values ($1, $2), ($3, $4)', [a, {full_name:'Old Name'}, b, {full_name:'Backfilled Name'}])
     await db.query('insert into public.user_profiles (id, full_name) values ($1, $2)', [a, 'Chosen Name'])
-    for (const file of files.filter(file => file.includes('phase4'))) {
+    for (const file of files.filter(file => file >= provisioning)) {
       await db.exec(await readFile(new URL(file, migrations), 'utf8'))
     }
     await t.test('backfill missing profiles while preserving existing names', async () => {

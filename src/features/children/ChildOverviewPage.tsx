@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Edit2,
   Loader2,
+  Printer,
   Salad,
   ShieldAlert,
   Syringe,
@@ -14,6 +15,8 @@ import {
 } from "lucide-react"
 import type { ChildFeaturePageProps } from "@/types"
 import { childService } from "@/services/children"
+import { useLanguage } from "@/hooks/useLanguage"
+import { ChildReportModal } from "@/features/reports/ChildReportModal"
 import { useChild } from "./useChild"
 import { routes } from "@/app/routes"
 import { PageHeader } from "@/components/layout/PageHeader"
@@ -44,6 +47,7 @@ import {
 
 export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
   const { updateChild, children } = useChild()
+  const { t } = useLanguage()
 
   const [fetchedChild, setChild] = useState<Awaited<ReturnType<typeof childService.get>> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -51,6 +55,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
 
   // Edit form state
   const [form, setForm] = useState<ChildFormValues>({
@@ -176,7 +181,17 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
         title={child.name}
         subtitle={`Child profile • Born ${child.dateOfBirth} (${age.text})`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReportModal(true)}
+              className="gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-medium"
+            >
+              <Printer aria-hidden className="size-4" />
+              {t("common.chdrReport")}
+            </Button>
+
             {!isEditing ? (
               <Button
                 variant="outline"
@@ -203,6 +218,12 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
             )}
           </div>
         }
+      />
+
+      <ChildReportModal
+        childId={child.id}
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
       />
 
       {/* Demo Warning Notice */}

@@ -16,7 +16,19 @@ import { routes } from "@/app/routes"
  *
  * No clinical content. No health-status inference. Safe empty state.
  */
-export function NotFoundPage() {
+interface NotFoundPageProps {
+  title?: string
+  description?: string
+  homeTo?: string
+  homeLabel?: string
+}
+
+export function NotFoundPage({
+  title = "Page not found",
+  description = "The address you entered does not match a SuwaDaru screen. If you were looking for a child's record, check that the child ID in the URL is correct.",
+  homeTo = routes.dashboard,
+  homeLabel = "Dashboard",
+}: NotFoundPageProps = {}) {
   const navigate = useNavigate()
 
   function handleBack() {
@@ -60,12 +72,10 @@ export function NotFoundPage() {
             404
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Page not found
+            {title}
           </h1>
           <p className="max-w-sm text-sm text-muted-foreground text-balance">
-            The address you entered does not match a SuwaDaru screen. If you
-            were looking for a child's record, check that the child ID in the
-            URL is correct.
+            {description}
           </p>
         </div>
 
@@ -88,9 +98,9 @@ export function NotFoundPage() {
             className="min-h-11 gap-2"
             id="not-found-dashboard"
           >
-            <Link to={routes.dashboard}>
+            <Link to={homeTo}>
               <LayoutDashboard aria-hidden className="size-4" />
-              Dashboard
+              {homeLabel}
             </Link>
           </Button>
 

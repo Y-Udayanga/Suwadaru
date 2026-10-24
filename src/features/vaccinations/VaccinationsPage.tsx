@@ -469,27 +469,27 @@ export function VaccinationsPage({ childId }: ChildFeaturePageProps) {
     <div className="flex min-w-0 flex-col gap-6 max-w-4xl pb-16">
       {/* ── Official EPI Schedule Baseline & Reviewed Status Banner (FR-023) ── */}
       <aside
-        className="rounded-xl border border-teal-200 bg-teal-50/70 p-4 text-teal-900 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-xs"
+        className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-foreground dark:border-primary/40 dark:bg-primary/10 shadow-xs"
         aria-label="Official Schedule Baseline Notice"
       >
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white mt-0.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground mt-0.5">
               <FileText className="h-4 w-4" aria-hidden />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm tracking-tight text-teal-950 dark:text-teal-50">
+                <span className="font-semibold text-sm tracking-tight text-foreground">
                   {EPI_SCHEDULE_METADATA.title}
                 </span>
-                <span className="rounded-md bg-teal-100 dark:bg-teal-900/80 px-2 py-0.5 text-xs font-mono font-medium text-teal-800 dark:text-teal-200">
+                <span className="rounded-md bg-primary/10 dark:bg-primary/20 px-2 py-0.5 text-xs font-mono font-medium text-primary">
                   v{EPI_SCHEDULE_METADATA.version}
                 </span>
               </div>
-              <p className="text-xs leading-relaxed text-teal-800 dark:text-teal-200 font-medium">
+              <p className="text-xs leading-relaxed text-muted-foreground font-medium">
                 ⚠️ {EPI_SCHEDULE_METADATA.mandatoryDisclaimer}
               </p>
-              <p className="text-xs text-teal-700/80 dark:text-teal-300/80">
+              <p className="text-xs text-muted-foreground/80">
                 Attribution: {EPI_SCHEDULE_METADATA.sourceAttribution} · Baseline effective: {EPI_SCHEDULE_METADATA.effectiveYear}
               </p>
             </div>
@@ -498,11 +498,12 @@ export function VaccinationsPage({ childId }: ChildFeaturePageProps) {
             href={EPI_SCHEDULE_METADATA.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 self-start sm:self-center shrink-0 rounded-lg border border-teal-300 dark:border-teal-700 bg-white/80 dark:bg-teal-900/60 px-3 py-1.5 text-xs font-medium text-teal-900 dark:text-teal-100 hover:bg-white dark:hover:bg-teal-900 transition-colors shadow-2xs"
+            className="inline-flex items-center gap-1.5 self-start sm:self-center shrink-0 rounded-lg border border-primary/30 dark:border-primary/60 bg-card px-3 py-1.5 text-xs font-medium text-primary hover:bg-accent transition-colors shadow-2xs"
           >
             <span>Official Schedule PDF</span>
             <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           </a>
+
         </div>
       </aside>
 

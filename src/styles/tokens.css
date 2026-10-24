@@ -1,18 +1,28 @@
 /*
-  SuwaDaru brand tokens (BRD section 12).
+  SuwaDaru brand tokens — Warm Maternal Care & Love Theme.
+  Harmonized with the Mother & Child Heart emblem.
 
-  --suwa-teal   #0F766E  primary actions and selected navigation
-  --suwa-mint   #E8F7F3  calm support surface
-  --suwa-canvas #F8FAFC  page background
-  --suwa-gold   #F4C95D  restrained highlight
-  --suwa-coral  #E27D72  carefully described warnings, never a diagnosis
+  --suwa-rose-primary   #BE123C  rich warm ruby rose for primary actions, badges, active tabs
+  --suwa-rose-blush     #FFF1F2  calming, soft loving support surface
+  --suwa-rose-border    #FECDD3  delicate warm accent border
+  --suwa-canvas         #FFF9F9  warm soft porcelain background (welcoming, non-clinical)
+  --suwa-ink            #231519  warm deep espresso text (WCAG AAA contrast, comfortable reading)
+  --suwa-ink-muted      #6B5158  warm taupe muted text (WCAG AA compliant)
+  --suwa-gold           #D97706  warm honey amber for milestone achievements
+  --suwa-coral          #F43F5E  vivid heart rose for lively highlights
 */
 
 :root {
-  --suwa-teal: #0F766E;
-  --suwa-mint: #E8F7F3;
-  --suwa-canvas: #F8FAFC;
-  --suwa-gold: #F4C95D;
-  --suwa-coral: #E27D72;
-  --suwa-ink: #0f172a;
+  --suwa-rose-primary: #BE123C;
+  --suwa-rose-blush: #FFF1F2;
+  --suwa-rose-border: #FECDD3;
+  --suwa-canvas: #FFF9F9;
+  --suwa-ink: #231519;
+  --suwa-ink-muted: #6B5158;
+  --suwa-gold: #D97706;
+  --suwa-coral: #F43F5E;
+
+  /* Aliases for backwards-compatibility */
+  --suwa-teal: var(--suwa-rose-primary);
+  --suwa-mint: var(--suwa-rose-blush);
 }

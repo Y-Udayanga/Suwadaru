@@ -195,9 +195,10 @@ export function LandingPage() {
           {/* Feature 1: Vaccines */}
           <Card className="border-border/80 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between">
             <CardHeader className="gap-3 pb-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
                 <Syringe aria-hidden className="size-5" />
               </div>
+
               <CardTitle className="text-base font-bold text-foreground">
                 EPI Immunization Timeline
               </CardTitle>

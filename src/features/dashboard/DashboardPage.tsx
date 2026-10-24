@@ -183,10 +183,11 @@ export function DashboardPage() {
               <Card className="border-border/80 shadow-xs flex flex-col justify-between">
                 <CardHeader className="gap-2 border-b border-border/50 pb-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                       <Syringe aria-hidden className="size-4 text-primary" />
                       <span>Next Scheduled EPI Milestone</span>
                     </div>
+
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                       {milestoneTeaser ? milestoneTeaser.ageLabel : "EPI Baseline"}
                     </span>
@@ -355,9 +356,10 @@ export function DashboardPage() {
                 className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:bg-accent/40 shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div>
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
                     <Syringe aria-hidden className="size-4" />
                   </div>
+
                   <h3 className="mt-3 font-semibold text-foreground group-hover:text-primary transition-colors text-sm">
                     Vaccinations
                   </h3>

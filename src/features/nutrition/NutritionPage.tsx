@@ -262,28 +262,29 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
     <div className="flex min-w-0 flex-col gap-5 max-w-3xl pb-16">
       {/* ── Mandatory Disclaimer Banner (FR-042, BR-06, BR-07) ── */}
       <aside
-        className="rounded-xl border border-teal-200 bg-teal-50/70 p-4 text-teal-950 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-xs"
+        className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-foreground dark:border-primary/40 dark:bg-primary/10 shadow-xs"
         aria-label="Demo Disclaimer Notice"
       >
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white mt-0.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground mt-0.5">
             <ShieldCheck className="h-4 w-4" aria-hidden />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-sm tracking-tight text-teal-950 dark:text-teal-100">
+              <span className="font-bold text-sm tracking-tight text-foreground">
                 Demo responses — no Gemini API connected
               </span>
-              <span className="rounded-md bg-teal-100 dark:bg-teal-900/80 px-2 py-0.5 text-xs font-mono font-medium text-teal-800 dark:text-teal-200">
+              <span className="rounded-md bg-primary/10 dark:bg-primary/20 px-2 py-0.5 text-xs font-mono font-medium text-primary">
                 FR-042 scripted demo
               </span>
             </div>
-            <p className="text-xs leading-relaxed text-teal-900/90 dark:text-teal-200/90">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               This interactive chat provides educational food and hygiene guidelines for Sri Lankan caregivers. <strong>It does not provide individual clinical diagnoses, drug dosages, or therapeutic prescriptions.</strong> For medical emergencies or acute illness, seek urgent hospital care immediately.
             </p>
           </div>
         </div>
       </aside>
+
 
       {/* ── Header & Child Context Bar ── */}
       <div className="flex flex-col gap-3">
@@ -376,11 +377,12 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
                     isUser
                       ? "bg-primary text-primary-foreground"
-                      : "bg-teal-700 text-white",
+                      : "bg-primary/90 text-primary-foreground",
                   )}
                   aria-hidden
                 >
                   {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+
                 </div>
 
                 {/* Message Bubble */}
@@ -428,9 +430,10 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
               role="status"
               aria-label="SuwaDaru is preparing an educational response"
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 text-white text-xs">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/90 text-primary-foreground text-xs">
                 <Bot className="h-4 w-4" />
               </div>
+
               <div className="rounded-2xl rounded-tl-xs bg-muted/60 border border-border/70 px-4 py-2.5 flex items-center gap-1.5 shadow-2xs">
                 <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />

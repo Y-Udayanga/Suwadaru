@@ -140,9 +140,9 @@ Test Suite: `supabase/tests/phase3-rls.test.mjs`.
   Map `date_of_birth`, `birth_weight_kg`, and nullable weight at the adapter
   boundary. PostgreSQL NUMERIC may need conversion to a JavaScript number in
   the chosen client. Birthdays remain `YYYY-MM-DD`, without timezone conversion.
-- `clinicName` exists in the TypeScript contract but is intentionally not
-  persisted by this requested schema. Resolve this before implementing the
-  connected adapter; do not silently promise to save it.
+- Phase 5 persists `clinicName` as nullable `children.clinic_name` and adds the
+  connected child adapter. See [Phase 5 integration](../docs/Phase5_Child_Management.md)
+  for migration dependencies, service methods, validation and frontend states.
 - Use `create_child` for child creation. Two separate client inserts will fail
   and cannot replace the atomic API.
 

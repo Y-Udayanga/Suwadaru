@@ -9,6 +9,7 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "oxlint",
     "test:auth": "node --test src/services/auth/auth.test.mjs supabase/tests/phase4-auth.test.mjs",
+    "test:children": "node --test src/services/children/child-service.test.mjs supabase/tests/phase5-children.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

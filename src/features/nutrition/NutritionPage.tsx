@@ -17,7 +17,6 @@
 import { useEffect, useReducer, useRef } from "react"
 import { Link } from "react-router"
 import {
-  MessageCircle,
   Send,
   AlertTriangle,
   Info,
@@ -265,11 +264,11 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
     <div className="flex min-w-0 flex-col gap-5 max-w-3xl pb-16">
       {/* ── Mandatory Disclaimer Banner (FR-042, BR-06, BR-07) ── */}
       <aside
-        className="rounded-xl border border-teal-200 bg-teal-50/70 p-4 text-teal-950 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-xs"
+        className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-foreground dark:border-primary/40 dark:bg-primary/10 shadow-xs"
         aria-label="Demo Disclaimer Notice"
       >
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white mt-0.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground mt-0.5">
             <ShieldCheck className="h-4 w-4" aria-hidden />
           </div>
           <div className="space-y-1">
@@ -279,25 +278,31 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
               </span>
               <span className="rounded-md bg-teal-100 dark:bg-teal-900/80 px-2 py-0.5 text-xs font-mono font-medium text-teal-800 dark:text-teal-200">
                 Education
+              <span className="font-bold text-sm tracking-tight text-foreground">
+                Demo responses — no Gemini API connected
+              </span>
+              <span className="rounded-md bg-primary/10 dark:bg-primary/20 px-2 py-0.5 text-xs font-mono font-medium text-primary">
+                FR-042 scripted demo
               </span>
             </div>
-            <p className="text-xs leading-relaxed text-teal-900/90 dark:text-teal-200/90">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               This interactive chat provides educational food and hygiene guidelines for Sri Lankan caregivers. <strong>It does not provide individual clinical diagnoses, drug dosages, or therapeutic prescriptions.</strong> For medical emergencies or acute illness, seek urgent hospital care immediately.
             </p>
           </div>
         </div>
       </aside>
 
+
       {/* ── Header & Child Context Bar ── */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-primary font-medium text-sm mb-1">
-              <MessageCircle className="h-4 w-4" aria-hidden />
-              <span>Pediatric Nutrition & Feeding Companion</span>
+            <div className="flex items-center gap-2 text-primary font-semibold text-xs sm:text-sm mb-1">
+              <Sparkles className="h-4 w-4" aria-hidden />
+              <span>SuwaDaru AI (සුවදරු AI) • Pediatric Companion</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Food & Feeding Guide
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Food & Feeding Assistant
             </h1>
           </div>
           <Link
@@ -312,9 +317,10 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
         {/* Child Context Banner with Child-Age Badge */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 font-bold text-base">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-base">
               {child.name.charAt(0)}
             </div>
+
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-foreground">{child.name}</h2>
@@ -350,14 +356,14 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
               </div>
               <div className="space-y-1 max-w-md mx-auto">
                 <h3 className="text-sm font-bold text-foreground">
-                  Welcome to {child.name}&apos;s Nutrition Companion
+                  Welcome to SuwaDaru AI (සුවදරු AI)
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Ask about age-appropriate Sri Lankan foods (red rice congee, dhal, wattakka, gotukola, boneless fish), food texture progression, water safety, and choking hazard prevention.
+                  Friendly, trustworthy educational guidance on age-appropriate Sri Lankan child nutrition, food safety, growth monitoring, and feeding milestones for {child.name}.
                 </p>
               </div>
               <p className="text-[11px] text-muted-foreground italic">
-                Choose a suggested topic below or type your question in the box below.
+                Choose a suggested topic below or type your question in English, සිංහල, or தமிழ்.
               </p>
             </div>
           )}
@@ -376,14 +382,18 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
                 {/* Avatar Icon */}
                 <div
                   className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold overflow-hidden",
                     isUser
                       ? "bg-primary text-primary-foreground"
-                      : "bg-teal-700 text-white",
+                      : "ring-1 ring-primary/30 bg-white",
                   )}
                   aria-hidden
                 >
-                  {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  {isUser ? (
+                    <User className="h-4 w-4" />
+                  ) : (
+                    <img src="/suwadaru-logo.jpg" alt="SuwaDaru AI" className="size-full object-cover" />
+                  )}
                 </div>
 
                 {/* Message Bubble */}
@@ -405,6 +415,7 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
                     )}
                   >
                     <span>{isUser ? `${child.name}'s caregiver` : msg.isDemo ? "SuwaDaru Simulator" : "SuwaDaru"}</span>
+                    <span>{isUser ? `${child.name}'s caregiver` : "SuwaDaru AI (සුවදරු AI)"}</span>
                     <span>·</span>
                     <time dateTime={msg.createdAt}>
                       {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -426,6 +437,7 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
             )
           })}
 
+
           {/* Simulated Typing Indicator */}
           {sending && (
             <div
@@ -433,9 +445,10 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
               role="status"
               aria-label="SuwaDaru is preparing an educational response"
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 text-white text-xs">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/90 text-primary-foreground text-xs">
                 <Bot className="h-4 w-4" />
               </div>
+
               <div className="rounded-2xl rounded-tl-xs bg-muted/60 border border-border/70 px-4 py-2.5 flex items-center gap-1.5 shadow-2xs">
                 <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -510,7 +523,7 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
                 value={input}
                 onChange={(e) => dispatch({ type: "INPUT", text: e.target.value })}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about foods, dhal, fish, textures, or water safety… (Enter to send, Shift+Enter for new line)"
+                placeholder="Ask SuwaDaru AI in Sinhala, Tamil, or English (e.g., මාස 8 බබාට අඩු වියදම් කෑම, Budget Meal Plan)…"
                 className="w-full resize-none rounded-xl border bg-background px-3.5 py-2.5 text-xs sm:text-sm text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary max-h-32 min-h-[42px]"
                 disabled={sending}
               />

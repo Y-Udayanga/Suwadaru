@@ -1,19 +1,32 @@
 import type { ReactNode } from "react"
-import { BrowserRouter } from "react-router"
+import { BrowserRouter, Outlet } from "react-router"
+import { AuthProvider as ConnectedAuthProvider } from "@/auth/AuthProvider"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AuthProvider } from "@/features/auth"
+import { AuthProvider as DemoAuthProvider } from "@/features/auth"
 import { ChildProvider } from "@/features/children"
+
+import { ThemeProvider } from "@/components/theme/ThemeProvider"
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ChildProvider>
-          <TooltipProvider delayDuration={400}>{children}</TooltipProvider>
-        </ChildProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <TooltipProvider delayDuration={400}>{children}</TooltipProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 
+/** Preserve the frontend's fictional demo without treating it as Supabase auth. */
+export function DemoAppProviders() {
+  return (
+    <DemoAuthProvider>
+      <ChildProvider><Outlet /></ChildProvider>
+    </DemoAuthProvider>
+  )
+}
 
+/** Real email callbacks have their own identity boundary, outside demo guards. */
+export function ConnectedAuthRoutes() {
+  return <ConnectedAuthProvider><Outlet /></ConnectedAuthProvider>
+}

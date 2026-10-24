@@ -218,9 +218,10 @@ function StatusBadge({ status }: { status: ClinicAppointment["status"] }) {
   > = {
     scheduled: {
       label: "Scheduled",
-      cls: "bg-[#E8F7F3] text-[#0F766E] border-[#A7F3D0]",
+      cls: "bg-primary/10 text-primary border-primary/25",
       Icon: Clock,
     },
+
     completed: {
       label: "Completed",
       cls: "bg-green-50 text-green-800 border-green-200",
@@ -488,11 +489,11 @@ function AppointmentForm({
   return (
     <section
       aria-label={isEdit ? "Edit clinic appointment" : "Schedule new clinic appointment"}
-      className="rounded-xl border border-[#A7F3D0] bg-[#E8F7F3]/70 p-4 sm:p-5 flex flex-col gap-4 shadow-xs"
+      className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex flex-col gap-4 shadow-xs"
     >
-      <div className="flex items-center justify-between border-b border-[#A7F3D0]/60 pb-3">
+      <div className="flex items-center justify-between border-b border-primary/15 pb-3">
         <div>
-          <h2 className="text-base font-semibold text-[#0F766E] flex items-center gap-1.5">
+          <h2 className="text-base font-semibold text-primary flex items-center gap-1.5">
             <CalendarCheck2 className="h-4 w-4" aria-hidden />
             {isEdit ? "Edit Clinic Appointment" : "Schedule New Clinic Appointment"}
           </h2>
@@ -840,7 +841,7 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
       {/* EPI Milestone Separation Banner (FR-051, BR-02) */}
       <aside
         aria-label="Clinical boundary notice"
-        className="flex items-start gap-2.5 rounded-xl border border-teal-200 bg-[#E8F7F3] px-4 py-3 text-xs leading-relaxed"
+        className="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs leading-relaxed"
       >
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
         <span className="text-muted-foreground">

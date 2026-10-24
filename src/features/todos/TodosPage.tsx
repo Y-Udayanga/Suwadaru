@@ -17,6 +17,7 @@ export function TodosPage() {
     async function getTodos() {
       try {
         setLoading(true)
+        if (!supabase) throw new Error('Supabase is not configured.')
         const { data, error: fetchError } = await supabase.from('todos').select()
 
         if (fetchError) {

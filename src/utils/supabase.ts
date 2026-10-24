@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const url = import.meta.env.VITE_SUPABASE_URL
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn(
-    'Supabase URL or Key is missing. Check your .env file: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY'
-  )
-}
-
-export const supabase = createClient(supabaseUrl || '', supabaseKey || '')
+// Missing configuration must not crash public/demo routes.
+export const supabase = url && key ? createClient(url, key, {
+  auth: {
+    flowType: 'pkce', persistSession: true, autoRefreshToken: true,
+    // Dedicated callback routes exchange the code exactly once.
+    detectSessionInUrl: false, debug: false,
+  },
+}) : null

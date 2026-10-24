@@ -9,7 +9,8 @@
     "typecheck": "tsc -b --pretty false",
     "test": "npx tsx --test tests/*.test.ts",
     "lint": "oxlint",
-    "test": "npx tsx --test tests/**/*.test.ts",
+    "test:auth": "node --test src/services/auth/auth.test.mjs supabase/tests/phase4-auth.test.mjs",
+    "test:children": "node --test src/services/children/child-service.test.mjs supabase/tests/phase5-children.test.mjs",
     "preview": "vite preview"
   },
   "imports": {

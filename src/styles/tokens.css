@@ -3,24 +3,32 @@
   Harmonized with the Mother & Child Heart emblem.
 
   --suwa-rose-primary   #BE123C  rich warm ruby rose for primary actions, badges, active tabs
+  --suwa-rose-vibrant   #E11D48  radiant heart rose
   --suwa-rose-blush     #FFF1F2  calming, soft loving support surface
+  --suwa-rose-light     #FFE4E6  gentle petal rose
   --suwa-rose-border    #FECDD3  delicate warm accent border
   --suwa-canvas         #FFF9F9  warm soft porcelain background (welcoming, non-clinical)
-  --suwa-ink            #231519  warm deep espresso text (WCAG AAA contrast, comfortable reading)
-  --suwa-ink-muted      #6B5158  warm taupe muted text (WCAG AA compliant)
+  --suwa-ink            #221217  warm deep espresso text (WCAG AAA contrast, comfortable reading)
+  --suwa-ink-muted      #6C5158  warm taupe muted text (WCAG AA compliant)
   --suwa-gold           #D97706  warm honey amber for milestone achievements
+  --suwa-gold-soft      #FEF3C7  honey cream
   --suwa-coral          #F43F5E  vivid heart rose for lively highlights
+  --suwa-amber          #EA580C  sunset apricot
 */
 
 :root {
   --suwa-rose-primary: #BE123C;
+  --suwa-rose-vibrant: #E11D48;
   --suwa-rose-blush: #FFF1F2;
+  --suwa-rose-light: #FFE4E6;
   --suwa-rose-border: #FECDD3;
   --suwa-canvas: #FFF9F9;
-  --suwa-ink: #231519;
-  --suwa-ink-muted: #6B5158;
+  --suwa-ink: #221217;
+  --suwa-ink-muted: #6C5158;
   --suwa-gold: #D97706;
+  --suwa-gold-soft: #FEF3C7;
   --suwa-coral: #F43F5E;
+  --suwa-amber: #EA580C;
 
   /* Aliases for backwards-compatibility */
   --suwa-teal: var(--suwa-rose-primary);

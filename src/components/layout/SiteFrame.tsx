@@ -17,20 +17,20 @@ const publicNav = [
 
 const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium",
-    "transition-colors duration-150",
+    "inline-flex min-h-10 items-center rounded-xl px-3.5 text-sm font-semibold",
+    "transition-all duration-200",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     isActive
-      ? "bg-primary text-white hover:bg-primary/90 hover:text-white active:text-white focus:text-white"
-      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
+      ? "bg-primary text-white shadow-sm hover:bg-primary/95 active:scale-95"
+      : "text-foreground/80 hover:bg-accent/70 hover:text-foreground",
   )
-
 
 function PublicHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/80">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/75 shadow-xs">
       <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
         <AppLogo asLink />
+
         {/* Spacer */}
         <div className="flex-1" />
         <nav aria-label="Public navigation">

@@ -59,11 +59,11 @@ export function StatCard({
   return (
     <article
       className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-xs",
-        "transition-shadow hover:shadow-sm",
+        "glass-card interactive-card flex min-w-0 flex-col gap-3 rounded-2xl p-4.5 shadow-xs",
         className,
       )}
     >
+
       <div className="flex items-center gap-3">
         {icon && (
           <span

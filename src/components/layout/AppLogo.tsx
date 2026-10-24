@@ -44,7 +44,8 @@ function LogoContent({
         aria-hidden="true"
         className={cn(
           "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl",
-          "border border-primary/15 bg-white shadow-xs",
+          "ring-2 ring-primary/20 bg-white shadow-[0_4px_12px_rgba(225,29,72,0.12)]",
+          "transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_6px_20px_rgba(225,29,72,0.22)] group-hover:ring-primary/40",
           sizeClasses,
         )}
       >
@@ -63,13 +64,14 @@ function LogoContent({
           collapsed && "sr-only",
         )}
       >
-        <span className="text-base font-bold tracking-tight text-foreground">
+        <span className="text-base font-extrabold tracking-tight bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 bg-clip-text text-transparent dark:from-rose-300 dark:via-rose-200 dark:to-amber-200">
           SuwaDaru
         </span>
-        <span className="mt-0.5 truncate text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
+        <span className="mt-0.5 truncate text-[0.65rem] font-semibold tracking-wider text-muted-foreground uppercase">
           Every Child. Every Milestone.
         </span>
       </span>
+
     </>
   )
 }

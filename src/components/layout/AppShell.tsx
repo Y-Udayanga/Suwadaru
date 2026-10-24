@@ -30,12 +30,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { LanguageToggle } from "@/components/theme/LanguageToggle"
 import { AmbientBackground } from "@/components/common/AmbientBackground"
+import { useLanguage, type TranslationKey } from "@/hooks/useLanguage"
 
 // ---------------------------------------------------------------------------
 // Nav item definitions
 // ---------------------------------------------------------------------------
-
 
 type NavItemDef = {
   to: string
@@ -45,52 +46,55 @@ type NavItemDef = {
 }
 
 /** Primary app-level navigation (always visible) */
-const primaryNav: NavItemDef[] = [
-  {
-    to: routes.dashboard,
-    label: "Dashboard",
-    icon: <LayoutDashboard aria-hidden className="size-4 shrink-0" />,
-    end: true,
-  },
-  {
-    to: routes.newChild,
-    label: "Add Child",
-    icon: <UserPlus aria-hidden className="size-4 shrink-0" />,
-    end: true,
-  },
-]
+function getPrimaryNav(t: (key: TranslationKey, fallback?: string) => string): NavItemDef[] {
+  return [
+    {
+      to: routes.dashboard,
+      label: t("nav.dashboard", "Dashboard"),
+      icon: <LayoutDashboard aria-hidden className="size-4 shrink-0" />,
+      end: true,
+    },
+    {
+      to: routes.newChild,
+      label: t("nav.addChild", "Add Child"),
+      icon: <UserPlus aria-hidden className="size-4 shrink-0" />,
+      end: true,
+    },
+  ]
+}
 
 /** Sub-navigation items for a single child */
-function childNav(childId: string): NavItemDef[] {
+function getChildNav(childId: string, t: (key: TranslationKey, fallback?: string) => string): NavItemDef[] {
   return [
     {
       to: routes.child(childId),
-      label: "Overview",
+      label: t("nav.overview", "Overview"),
       icon: <Baby aria-hidden className="size-4 shrink-0" />,
       end: true,
     },
     {
       to: routes.vaccinations(childId),
-      label: "Vaccinations",
+      label: t("nav.vaccinations", "Vaccinations"),
       icon: <Syringe aria-hidden className="size-4 shrink-0" />,
     },
     {
       to: routes.growth(childId),
-      label: "Growth",
+      label: t("nav.growth", "Growth"),
       icon: <TrendingUp aria-hidden className="size-4 shrink-0" />,
     },
     {
       to: routes.nutrition(childId),
-      label: "Nutrition",
+      label: t("nav.nutrition", "Nutrition"),
       icon: <Salad aria-hidden className="size-4 shrink-0" />,
     },
     {
       to: routes.appointments(childId),
-      label: "Appointments",
+      label: t("nav.appointments", "Appointments"),
       icon: <CalendarClock aria-hidden className="size-4 shrink-0" />,
     },
   ]
 }
+
 
 // ---------------------------------------------------------------------------
 // Shared NavLink styling helpers
@@ -180,6 +184,7 @@ function ChildSwitcherSection({
   onClose?: () => void
 }) {
   const { children, selectedChild } = useChild()
+  const { t } = useLanguage()
   const activeChild = selectedChild || children[0]
 
   return (
@@ -195,8 +200,8 @@ function ChildSwitcherSection({
       {/* Feature Navigation for Active Child */}
       {activeChild && (
         <NavSection
-          items={childNav(activeChild.id)}
-          label={!collapsed ? `${activeChild.name}'s Records` : undefined}
+          items={getChildNav(activeChild.id, t)}
+          label={!collapsed ? `${activeChild.name} • ${t("nav.records", "Records")}` : undefined}
           collapsed={collapsed}
           onClose={onClose}
         />
@@ -211,6 +216,8 @@ function ChildSwitcherSection({
 
 function DesktopSidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const { t } = useLanguage()
+  const primaryNav = getPrimaryNav(t)
 
   return (
     <aside
@@ -262,9 +269,10 @@ function DesktopSidebar() {
       >
         <NavSection
           items={primaryNav}
-          label={!collapsed ? "General" : undefined}
+          label={!collapsed ? t("nav.general", "General") : undefined}
           collapsed={collapsed}
         />
+
 
         <Separator className="my-0" />
 
@@ -290,6 +298,8 @@ function DesktopSidebar() {
 
 function MobileNav() {
   const [open, setOpen] = useState(false)
+  const { t } = useLanguage()
+  const primaryNav = getPrimaryNav(t)
 
   return (
     <>
@@ -297,8 +307,8 @@ function MobileNav() {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-background/85 backdrop-blur-md px-4 md:hidden shadow-2xs">
         <AppLogo asLink />
 
-
         <div className="flex items-center gap-1.5 sm:gap-2">
+          <LanguageToggle compact />
           <ThemeToggle variant="icon" />
           <UserMenuButton compact />
           <Button
@@ -314,7 +324,6 @@ function MobileNav() {
           </Button>
         </div>
       </header>
-
 
       {/* Slide-in drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
@@ -349,7 +358,7 @@ function MobileNav() {
           >
             <NavSection
               items={primaryNav}
-              label="General"
+              label={t("nav.general", "General")}
               onClose={() => setOpen(false)}
             />
             <Separator className="my-0" />
@@ -372,6 +381,7 @@ function MobileNav() {
 function DemoSignOutButton() {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const { t } = useLanguage()
 
   async function handleSignOut() {
     try {
@@ -389,11 +399,11 @@ function DemoSignOutButton() {
         "flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
         "text-muted-foreground hover:bg-accent hover:text-foreground",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        "transition-colors",
+        "transition-colors cursor-pointer",
       )}
     >
       <LogOut aria-hidden className="size-4 shrink-0" />
-      Sign out (demo)
+      {t("nav.signOut", "Sign out (demo)")}
     </button>
   )
 }
@@ -445,11 +455,13 @@ export function AppShell() {
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <LanguageToggle />
             <ThemeToggle />
             <UserMenuButton />
           </div>
         </header>
+
 
 
         {/* Mobile top bar — rendered here but visible only on mobile */}

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link } from "react-router"
 import {
   Activity,
@@ -7,6 +8,7 @@ import {
   Clock,
   MessageSquare,
   Plus,
+  Printer,
   Salad,
   Sparkles,
   Syringe,
@@ -15,6 +17,8 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/features/auth"
 import { useChild, ChildSwitcher, calculateAge } from "@/features/children"
+import { useLanguage } from "@/hooks/useLanguage"
+import { ChildReportModal } from "@/features/reports/ChildReportModal"
 import { routes } from "@/app/routes"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { StatCard } from "@/components/layout/StatCard"
@@ -39,6 +43,8 @@ import {
 export function DashboardPage() {
   const { session } = useAuth()
   const { children, selectedChild, isLoading } = useChild()
+  const { t } = useLanguage()
+  const [showReportModal, setShowReportModal] = useState(false)
 
   // 1. Loading Skeleton State
   if (isLoading && children.length === 0) {
@@ -132,13 +138,28 @@ export function DashboardPage() {
         </div>
 
         {activeChild && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReportModal(true)}
+              className="gap-1.5 text-xs rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-medium"
+            >
+              <Printer aria-hidden className="size-3.5" />
+              {t("common.chdrReport")}
+            </Button>
             <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs rounded-xl hover:bg-accent/60">
               <Link to={routes.child(activeChild.id)}>
                 <UserCheck aria-hidden className="size-3.5" />
                 View & Edit Profile
               </Link>
             </Button>
+
+            <ChildReportModal
+              childId={activeChild.id}
+              isOpen={showReportModal}
+              onClose={() => setShowReportModal(false)}
+            />
           </div>
         )}
       </div>

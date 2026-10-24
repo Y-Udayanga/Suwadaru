@@ -320,3 +320,60 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Print & PDF Export Styling (Official A4 Medical Summary)
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide UI chrome, sidebars, navigations, backgrounds, and action buttons */
+  header, aside, nav, footer, .no-print, [aria-hidden="true"], button {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #root {
+    display: block !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .printable-report {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1cm !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .printable-report table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .printable-report th,
+  .printable-report td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 10px !important;
+  }
+
+  .printable-report th {
+    background-color: #f1f5f9 !important;
+    font-weight: 600 !important;
+  }
+}
+

@@ -5,20 +5,24 @@ import { AuthProvider } from "@/features/auth"
 import { ChildProvider } from "@/features/children"
 
 import { ThemeProvider } from "@/components/theme/ThemeProvider"
+import { LanguageProvider } from "@/components/theme/LanguageProvider"
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <ChildProvider>
-            <TooltipProvider delayDuration={400}>{children}</TooltipProvider>
-          </ChildProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <ChildProvider>
+              <TooltipProvider delayDuration={400}>{children}</TooltipProvider>
+            </ChildProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </LanguageProvider>
     </ThemeProvider>
   )
 }
+
 
 
 

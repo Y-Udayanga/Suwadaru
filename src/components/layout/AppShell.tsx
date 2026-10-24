@@ -15,9 +15,11 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
-import { demoChildren, demoCaregiver } from "@/data/mock"
+import { demoCaregiver } from "@/data/mock"
 import { AppLogo } from "./AppLogo"
 import { UserMenuButton } from "./UserMenuButton"
+import { useAuth } from "@/features/auth"
+import { useChild, ChildSwitcher } from "@/features/children"
 import {
   Sheet,
   SheetContent,
@@ -172,19 +174,29 @@ function ChildSwitcherSection({
   collapsed?: boolean
   onClose?: () => void
 }) {
+  const { children, selectedChild } = useChild()
+  const activeChild = selectedChild || children[0]
+
   return (
-    <>
-      {demoChildren.map((child) => (
-        <div key={child.id} className="flex flex-col gap-0.5">
-          <NavSection
-            items={childNav(child.id)}
-            label={child.name}
-            collapsed={collapsed}
-            onClose={onClose}
-          />
-        </div>
-      ))}
-    </>
+    <div className="flex flex-col gap-3">
+      {/* Switcher Component */}
+      <div className={cn(collapsed ? "px-0" : "px-0.5")}>
+        <ChildSwitcher
+          collapsed={collapsed}
+          onSelect={onClose}
+        />
+      </div>
+
+      {/* Feature Navigation for Active Child */}
+      {activeChild && (
+        <NavSection
+          items={childNav(activeChild.id)}
+          label={!collapsed ? `${activeChild.name}'s Records` : undefined}
+          collapsed={collapsed}
+          onClose={onClose}
+        />
+      )}
+    </div>
   )
 }
 
@@ -351,10 +363,14 @@ function MobileNav() {
 
 function DemoSignOutButton() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
-  function handleSignOut() {
-    // Demo only: redirect to login. No real session to invalidate.
-    void navigate(routes.login)
+  async function handleSignOut() {
+    try {
+      await logout()
+    } finally {
+      void navigate(routes.login)
+    }
   }
 
   return (
@@ -384,17 +400,11 @@ function DemoSignOutButton() {
  * The root layout wrapper for all authenticated (post-login) routes.
  * Renders a desktop sidebar at ≥768 px and a mobile top bar + slide-in
  * drawer below 768 px. Page content is delivered via React Router <Outlet />.
- *
- * Usage (already wired in router.tsx — Frontend B should not modify):
- *
- *   <Route element={<AppShell />}>
- *     <Route path="dashboard" element={<DashboardPage />} />
- *     ...
- *   </Route>
- *
- * The shell is presentation-only. It does not read child state or health data.
  */
 export function AppShell() {
+  const { session } = useAuth()
+  const displayName = session?.displayName || demoCaregiver.displayName
+
   return (
     <div className="relative flex min-h-svh min-w-0 bg-background text-foreground">
       {/* Skip link — keyboard users jump past navigation */}
@@ -422,7 +432,7 @@ export function AppShell() {
             <p className="text-xs text-muted-foreground">
               Fictional demo —{" "}
               <span className="font-medium text-foreground">
-                {demoCaregiver.displayName}
+                {displayName}
               </span>
             </p>
           </div>

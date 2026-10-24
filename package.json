@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "lint": "oxlint",
-    "test": "npx tsx --test tests/auth.test.ts",
+    "test": "npx tsx --test tests/**/*.test.ts",
     "preview": "vite preview"
   },
   "imports": {

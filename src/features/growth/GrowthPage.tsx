@@ -950,7 +950,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                     <Line
                       dataKey="median"
                       name="Median (Illustrative placeholder - not WHO)"
-                      stroke="#0F766E"
+                      stroke="#BE123C"
                       strokeWidth={1.5}
                       strokeDasharray="6 3"
                       dot={false}
@@ -980,17 +980,18 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                   </>
                 )}
 
-                {/* Child's actual trend line: Solid teal */}
+                {/* Child's actual trend line: Solid warm rose */}
                 <Line
                   dataKey="weight"
                   name={`${child.name}'s Recorded Weight (kg)`}
-                  stroke="#0F766E"
+                  stroke="#BE123C"
                   strokeWidth={3}
-                  dot={{ r: 5, fill: "#0F766E", stroke: "#ffffff", strokeWidth: 2 }}
-                  activeDot={{ r: 7, fill: "#0F766E" }}
+                  dot={{ r: 5, fill: "#BE123C", stroke: "#ffffff", strokeWidth: 2 }}
+                  activeDot={{ r: 7, fill: "#BE123C" }}
                   connectNulls
                   isAnimationActive={true}
                 />
+
               </LineChart>
             </ResponsiveContainer>
           </div>

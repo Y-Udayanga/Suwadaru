@@ -3,6 +3,8 @@ import { NavLink, Outlet } from "react-router"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { AppLogo } from "./AppLogo"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { AmbientBackground } from "@/components/common/AmbientBackground"
 
 // ---------------------------------------------------------------------------
 // PublicFrame — wrapper for unauthenticated pages (landing, login, register)
@@ -17,33 +19,36 @@ const publicNav = [
 
 const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium",
-    "transition-colors duration-150",
+    "inline-flex min-h-10 items-center rounded-xl px-3.5 text-sm font-semibold",
+    "transition-all duration-200",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     isActive
-      ? "bg-primary text-white hover:bg-primary/90 hover:text-white active:text-white focus:text-white"
-      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
+      ? "bg-primary text-white shadow-sm hover:bg-primary/95 active:scale-95"
+      : "text-foreground/80 hover:bg-accent/70 hover:text-foreground",
   )
-
 
 function PublicHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/80">
-      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/75 shadow-xs transition-colors duration-200">
+      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <AppLogo asLink />
+
         {/* Spacer */}
         <div className="flex-1" />
-        <nav aria-label="Public navigation">
-          <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
-            {publicNav.map((item) => (
-              <li key={item.to}>
-                <NavLink to={item.to} end={item.end} className={publicLinkClass}>
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <nav aria-label="Public navigation">
+            <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
+              {publicNav.map((item) => (
+                <li key={item.to}>
+                  <NavLink to={item.to} end={item.end} className={publicLinkClass}>
+                    {item.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   )
@@ -51,8 +56,10 @@ function PublicHeader() {
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-svh min-w-0 flex-col bg-background text-foreground">
+    <div className="relative flex min-h-svh min-w-0 flex-col bg-background/80 text-foreground transition-colors duration-300">
+      <AmbientBackground />
       {/* Skip link */}
+
       <a
         href="#main"
         className={cn(

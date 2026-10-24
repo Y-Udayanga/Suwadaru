@@ -29,10 +29,13 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { AmbientBackground } from "@/components/common/AmbientBackground"
 
 // ---------------------------------------------------------------------------
 // Nav item definitions
 // ---------------------------------------------------------------------------
+
 
 type NavItemDef = {
   to: string
@@ -99,19 +102,20 @@ function navLinkClass(
 ) {
   return cn(
     // Layout
-    "group relative flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
+    "group relative flex min-h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-semibold",
     // Transitions
-    "transition-colors duration-150",
+    "transition-all duration-200",
     // Focus ring — always visible, not just on keyboard
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     // State-dependent styling
     isActive
-      ? "bg-primary text-white hover:bg-primary/90 hover:text-white active:text-white focus:text-white"
-      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
+      ? "bg-gradient-to-r from-primary to-rose-600 text-white shadow-sm shadow-rose-900/15"
+      : "text-foreground/80 hover:bg-accent/70 hover:text-foreground",
     // Collapsed: centre the icon, remove horizontal text padding
     collapsed && "justify-center px-0",
   )
 }
+
 
 
 // ---------------------------------------------------------------------------
@@ -215,7 +219,7 @@ function DesktopSidebar() {
         // Layout
         "hidden md:flex flex-col gap-4",
         "min-h-svh shrink-0",
-        "border-r border-border bg-card",
+        "border-r border-border/70 bg-sidebar/95 backdrop-blur-md",
         // Transitions
         "transition-[width] duration-200",
         collapsed ? "w-16" : "w-64",
@@ -290,10 +294,12 @@ function MobileNav() {
   return (
     <>
       {/* Mobile top bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4 md:hidden">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-background/85 backdrop-blur-md px-4 md:hidden shadow-2xs">
         <AppLogo asLink />
 
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ThemeToggle variant="icon" />
           <UserMenuButton compact />
           <Button
             variant="ghost"
@@ -308,6 +314,7 @@ function MobileNav() {
           </Button>
         </div>
       </header>
+
 
       {/* Slide-in drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
@@ -407,7 +414,8 @@ export function AppShell() {
   const displayName = session?.displayName || demoCaregiver.displayName
 
   return (
-    <div className="relative flex min-h-svh min-w-0 bg-background text-foreground">
+    <div className="relative flex min-h-svh min-w-0 bg-background/80 text-foreground transition-colors duration-300">
+      <AmbientBackground />
       {/* Skip link — keyboard users jump past navigation */}
       <a
         href="#main-content"
@@ -428,7 +436,7 @@ export function AppShell() {
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Desktop top bar */}
-        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border bg-card px-6 md:flex">
+        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-md px-6 md:flex shadow-2xs transition-colors duration-200">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
               Fictional demo —{" "}
@@ -437,8 +445,12 @@ export function AppShell() {
               </span>
             </p>
           </div>
-          <UserMenuButton />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserMenuButton />
+          </div>
         </header>
+
 
         {/* Mobile top bar — rendered here but visible only on mobile */}
         <MobileNav />

@@ -1,85 +1,84 @@
 import type { ReactNode } from "react"
 import { NavLink, Outlet } from "react-router"
-import { HeartPulse } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
+import { AppLogo } from "./AppLogo"
 
-type NavItem = {
-  to: string
-  label: string
-  end?: boolean
-}
-
-const linkClassName = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-foreground hover:bg-mint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    isActive && "bg-primary text-primary-foreground hover:bg-primary",
-  )
-
-export function SiteFrame({
-  navLabel,
-  items,
-  children,
-}: {
-  navLabel: string
-  items: readonly NavItem[]
-  children: ReactNode
-}) {
-  return (
-    <div className="relative flex min-h-svh min-w-0 flex-col bg-background text-foreground">
-      <a
-        href="#main"
-        className="absolute top-3 left-3 z-10 -translate-y-16 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
-        Skip to content
-      </a>
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
-          <NavLink
-            to={routes.home}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <HeartPulse aria-hidden="true" />
-            SuwaDaru
-          </NavLink>
-          <p className="text-sm text-muted-foreground">Companion preview</p>
-        </div>
-        <nav aria-label={navLabel} className="mx-auto w-full max-w-6xl min-w-0 px-4 pb-3">
-          <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
-            {items.map((item) => (
-              <li key={item.to}>
-                <NavLink to={item.to} end={item.end} className={linkClassName}>
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </header>
-      <main id="main" className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 py-6">
-        {children}
-      </main>
-      <footer className="mx-auto w-full max-w-6xl min-w-0 px-4 py-6 text-sm text-muted-foreground">
-        SuwaDaru is a fictional companion preview. It is not a clinical record,
-        a government service, or a substitute for a midwife or doctor.
-      </footer>
-    </div>
-  )
-}
+// ---------------------------------------------------------------------------
+// PublicFrame — wrapper for unauthenticated pages (landing, login, register)
+// ---------------------------------------------------------------------------
 
 const publicNav = [
   { to: routes.home, label: "Home", end: true },
   { to: routes.login, label: "Sign in", end: true },
   { to: routes.register, label: "Register", end: true },
   { to: routes.forgotPassword, label: "Recovery preview", end: true },
-  { to: routes.dashboard, label: "Dashboard", end: true },
-] as const satisfies readonly NavItem[]
+] as const
+
+const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium",
+    "transition-colors duration-150",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    "hover:bg-accent hover:text-accent-foreground",
+    isActive
+      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+      : "text-foreground/80",
+  )
+
+function PublicHeader() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/80">
+      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
+        <AppLogo asLink />
+        {/* Spacer */}
+        <div className="flex-1" />
+        <nav aria-label="Public navigation">
+          <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
+            {publicNav.map((item) => (
+              <li key={item.to}>
+                <NavLink to={item.to} end={item.end} className={publicLinkClass}>
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </header>
+  )
+}
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <SiteFrame navLabel="Public" items={publicNav}>
-      {children}
-    </SiteFrame>
+    <div className="relative flex min-h-svh min-w-0 flex-col bg-background text-foreground">
+      {/* Skip link */}
+      <a
+        href="#main"
+        className={cn(
+          "absolute top-3 left-3 z-50 -translate-y-20 rounded-lg",
+          "bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg",
+          "focus:translate-y-0",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+          "transition-transform duration-150",
+        )}
+      >
+        Skip to content
+      </a>
+
+      <PublicHeader />
+
+      <main id="main" className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 py-6">
+        {children}
+      </main>
+
+      <footer className="border-t border-border bg-card px-4 py-6">
+        <div className="mx-auto max-w-6xl text-xs text-muted-foreground">
+          SuwaDaru is a fictional companion preview. Not a clinical record, a
+          government service, or a substitute for a midwife or doctor.
+        </div>
+      </footer>
+    </div>
   )
 }
 
@@ -90,3 +89,6 @@ export function PublicRoutes() {
     </PublicLayout>
   )
 }
+
+// Keep SiteFrame exported for backwards-compat in case something imports it
+export { PublicLayout as SiteFrame }

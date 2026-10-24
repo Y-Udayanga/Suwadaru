@@ -29,10 +29,13 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { AmbientBackground } from "@/components/common/AmbientBackground"
 
 // ---------------------------------------------------------------------------
 // Nav item definitions
 // ---------------------------------------------------------------------------
+
 
 type NavItemDef = {
   to: string
@@ -295,7 +298,8 @@ function MobileNav() {
         <AppLogo asLink />
 
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ThemeToggle variant="icon" />
           <UserMenuButton compact />
           <Button
             variant="ghost"
@@ -310,6 +314,7 @@ function MobileNav() {
           </Button>
         </div>
       </header>
+
 
       {/* Slide-in drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
@@ -409,7 +414,8 @@ export function AppShell() {
   const displayName = session?.displayName || demoCaregiver.displayName
 
   return (
-    <div className="relative flex min-h-svh min-w-0 bg-background text-foreground">
+    <div className="relative flex min-h-svh min-w-0 bg-background/80 text-foreground transition-colors duration-300">
+      <AmbientBackground />
       {/* Skip link — keyboard users jump past navigation */}
       <a
         href="#main-content"
@@ -430,7 +436,7 @@ export function AppShell() {
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Desktop top bar */}
-        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-md px-6 md:flex shadow-2xs">
+        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-md px-6 md:flex shadow-2xs transition-colors duration-200">
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">
               Fictional demo —{" "}
@@ -439,8 +445,12 @@ export function AppShell() {
               </span>
             </p>
           </div>
-          <UserMenuButton />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserMenuButton />
+          </div>
         </header>
+
 
         {/* Mobile top bar — rendered here but visible only on mobile */}
         <MobileNav />

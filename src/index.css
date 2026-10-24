@@ -95,38 +95,40 @@
 }
 
 .dark {
-  --background: #180c10;
+  --background: #12090c;
   --foreground: #fff1f2;
-  --card: #231218;
+  --card: #1c0e13;
   --card-foreground: #fff1f2;
-  --popover: #231218;
+  --popover: #1c0e13;
   --popover-foreground: #fff1f2;
-  --primary: #fb7185;
-  --primary-foreground: #4c0519;
-  --secondary: #3b141e;
-  --secondary-foreground: #ffe4e6;
-  --muted: #33121a;
-  --muted-foreground: #fecdd3;
-  --accent: #3b141e;
-  --accent-foreground: #ffe4e6;
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --secondary: #2e1018;
+  --secondary-foreground: #fda4af;
+  --muted: #270e15;
+  --muted-foreground: #fda4af;
+  --accent: #2e1018;
+  --accent-foreground: #fecdd3;
   --destructive: #fb7185;
-  --border: #441723;
-  --input: #441723;
+  --border: #3f1521;
+  --input: #3f1521;
   --ring: #fb7185;
   --chart-1: #fb7185;
   --chart-2: #fbbf24;
   --chart-3: #fda4af;
   --chart-4: #fecdd3;
   --chart-5: #ffffff;
-  --sidebar: #180c10;
+  --sidebar: #12090c;
   --sidebar-foreground: #fff1f2;
-  --sidebar-primary: #fb7185;
-  --sidebar-primary-foreground: #4c0519;
-  --sidebar-accent: #3b141e;
-  --sidebar-accent-foreground: #ffe4e6;
-  --sidebar-border: #441723;
+  --sidebar-primary: #e11d48;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2e1018;
+  --sidebar-accent-foreground: #fda4af;
+  --sidebar-border: #3f1521;
   --sidebar-ring: #fb7185;
+  color-scheme: dark;
 }
+
 
 @layer base {
   * {
@@ -176,6 +178,50 @@
   }
 }
 
+@keyframes ambient-drift-1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(45px, -30px) scale(1.08);
+  }
+  66% {
+    transform: translate(-25px, 25px) scale(0.95);
+  }
+}
+
+@keyframes ambient-drift-2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(-35px, 35px) scale(0.94);
+  }
+  66% {
+    transform: translate(30px, -20px) scale(1.09);
+  }
+}
+
+@keyframes ambient-drift-3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(25px, 40px) scale(1.12);
+  }
+}
+
+@keyframes ambient-sparkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateY(0px) scale(0.85);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-10px) scale(1.2);
+  }
+}
+
 .animate-float-gentle {
   animation: float-gentle 4s ease-in-out infinite;
 }
@@ -187,6 +233,23 @@
 .animate-aura-glow {
   animation: aura-glow 5s ease-in-out infinite;
 }
+
+.animate-ambient-1 {
+  animation: ambient-drift-1 18s ease-in-out infinite;
+}
+
+.animate-ambient-2 {
+  animation: ambient-drift-2 24s ease-in-out infinite;
+}
+
+.animate-ambient-3 {
+  animation: ambient-drift-3 28s ease-in-out infinite;
+}
+
+.animate-ambient-sparkle {
+  animation: ambient-sparkle 5s ease-in-out infinite;
+}
+
 
 /* Glassmorphism card with warm border */
 .glass-card {

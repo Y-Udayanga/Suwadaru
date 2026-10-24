@@ -32,9 +32,13 @@ import {
   type ChildFormValues,
 } from "./validation"
 
+import { useLanguage } from "@/hooks/useLanguage"
+
 export function AddChildPage() {
   const navigate = useNavigate()
   const { addChild } = useChild()
+  const { language } = useLanguage()
+  const isSi = language === "si"
 
   const [form, setForm] = useState<ChildFormValues>({
     name: "",
@@ -104,8 +108,12 @@ export function AddChildPage() {
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
       <PageHeader
-        title="Add Child Profile"
-        subtitle="Add a child profile to your account."
+        title={isSi ? "නව ළමා පැතිකඩක් එක් කරන්න" : "Add Child Profile"}
+        subtitle={
+          isSi
+            ? "එන්නත් කාලසටහන් සහ වර්ධන වක්‍ර සඳහා ඔබේ දරුවාගේ තොරතුරු සටහන් කරන්න."
+            : "Record a child profile to track EPI immunization schedules and WHO growth curves."
+        }
         actions={
           <Button
             variant="outline"
@@ -114,7 +122,7 @@ export function AddChildPage() {
             className="gap-2"
           >
             <ArrowLeft aria-hidden className="size-4" />
-            Back to Dashboard
+            {isSi ? "ආපසු ප්‍රධාන පුවරුවට" : "Back to Dashboard"}
           </Button>
         }
       />
@@ -131,10 +139,12 @@ export function AddChildPage() {
           </div>
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-amber-900 dark:text-amber-200">
-              Child profile privacy
+              {isSi ? "ළමා පැතිකඩ රහස්‍යතාව" : "Child profile privacy"}
             </p>
             <p className="text-xs text-amber-800/90 dark:text-amber-300/80 leading-relaxed">
-              Enter only the information needed for this profile. Records are accessible to authorized caregivers linked to the child.
+              {isSi
+                ? "මෙම පැතිකඩ සඳහා අවශ්‍ය තොරතුරු පමණක් ඇතුළත් කරන්න. සටහන් ඔබේ ගිණුම හා සම්බන්ධිතව සුරක්ෂිතව පවතී."
+                : "Enter only the information needed for this profile. Records are accessible to authorized caregivers linked to the child."}
             </p>
           </div>
         </div>
@@ -144,10 +154,18 @@ export function AddChildPage() {
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center space-y-3">
           <CheckCircle2 aria-hidden className="size-10 text-primary mx-auto" />
           <h2 className="text-lg font-bold text-foreground">
-            Child Profile Created!
+            {isSi ? "ළමා පැතිකඩ සාර්ථකව සාදන ලදි!" : "Child Profile Created!"}
           </h2>
           <p className="text-sm text-muted-foreground">
-            Profile for <strong>{savedChildName}</strong> has been saved. Loading child overview...
+            {isSi ? (
+              <>
+                <strong>{savedChildName}</strong> දරුවාගේ පැතිකඩ සුරකින ලදි. දළ විශ්ලේෂණය පූරණය වෙමින්...
+              </>
+            ) : (
+              <>
+                Profile for <strong>{savedChildName}</strong> has been saved. Loading child overview...
+              </>
+            )}
           </p>
         </div>
       ) : (
@@ -156,12 +174,14 @@ export function AddChildPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Baby aria-hidden className="size-5 text-primary" />
-                Child Demographics
+                {isSi ? "ළමා තොරතුරු (Demographics)" : "Child Demographics"}
               </CardTitle>
 
             </div>
             <CardDescription>
-              Birth date and sex determine WHO growth reference curves and EPI milestone calculations.
+              {isSi
+                ? "උපන් දිනය සහ ස්ත්‍රී/පුරුෂ භාවය මත පදනම්ව WHO වර්ධන වක්‍ර සහ EPI එන්නත් කාලසටහන ස්වයංක්‍රීයව ගණනය කෙරේ."
+                : "Birth date and sex determine WHO growth reference curves and EPI milestone calculations."}
             </CardDescription>
           </CardHeader>
 
@@ -372,20 +392,20 @@ export function AddChildPage() {
                 onClick={() => void navigate(routes.dashboard)}
                 className="w-full sm:w-auto"
               >
-                Cancel
+                {isSi ? "අවලංගු කරන්න" : "Cancel"}
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto min-w-32"
+                className="w-full sm:w-auto min-w-32 btn-premium"
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <Loader2 aria-hidden className="size-4 animate-spin" />
-                    Saving profile...
+                    {isSi ? "සුරැකෙමින්…" : "Saving profile..."}
                   </span>
                 ) : (
-                  "Save Child Profile"
+                  isSi ? "දරුවාගේ පැතිකඩ සුරකින්න" : "Save Child Profile"
                 )}
               </Button>
             </CardFooter>

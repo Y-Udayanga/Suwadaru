@@ -22,8 +22,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useLanguage } from "@/hooks/useLanguage"
 
 export function LandingPage() {
+  const { language } = useLanguage()
+  const isSi = language === "si"
+
   return (
     <div className="relative flex flex-col gap-16 py-4 md:py-8 overflow-hidden">
       {/* ── Ambient Background Glow Orbs (Visual Depth & Polish) ── */}
@@ -62,7 +66,7 @@ export function LandingPage() {
         {/* Prototype & Scope Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 px-4 py-1.5 text-xs font-semibold text-primary shadow-xs animate-pulse-subtle">
           <Sparkles aria-hidden className="size-3.5 text-primary" />
-          <span>Caregiver Health Companion</span>
+          <span>{isSi ? "සත්කාරක ළමා සෞඛ්‍ය සහකාර • ආදර්ශන නිරූපණය" : "Caregiver Health Companion • Prototype Demonstration"}</span>
         </div>
 
         {/* Hero Title & Tagline with Radiant Sunset-Rose Gradient */}
@@ -71,13 +75,15 @@ export function LandingPage() {
             id="hero-heading"
             className="text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl text-balance leading-tight"
           >
-            Every Child. Every Milestone.{" "}
-            <span className="gradient-heading block sm:inline">A Healthier Tomorrow.</span>
+            {isSi ? "සෑම දරුවෙක්ම. සෑම සන්ධිස්ථානයක්ම. " : "Every Child. Every Milestone. "}
+            <span className="gradient-heading block sm:inline">
+              {isSi ? "නීරෝගී, දීප්තිමත් හෙට දවසක්." : "A Healthier Tomorrow."}
+            </span>
           </h1>
           <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-muted-foreground text-balance leading-relaxed">
-            A digital companion for caregivers in Sri Lanka alongside the physical
-            Child Health Development Record (CHDR). Save vaccination records,
-            track measurements, organize clinic visits, and keep nutrition notes.
+            {isSi
+              ? "ශ්‍රී ලංකාවේ දෙමාපියන් සහ රැකබලා ගන්නන් සඳහා ළමා සෞඛ්‍ය සංවර්ධන වාර්තාවට (CHDR) අත්වැලක් වන ඩිජිටල් සහකාර සේවාව. එන්නත් කාලසටහන, වර්ධන ප්‍රමිතීන්, සායන හමුවීම් සහ ප්‍රායෝගික පෝෂණ උපදෙස් එක්තැන්ව."
+              : "A digital companion for caregivers in Sri Lanka alongside the physical Child Health Development Record (CHDR). Save vaccination records, track measurements, organize clinic visits, and keep nutrition notes."}
           </p>
         </div>
 
@@ -89,7 +95,7 @@ export function LandingPage() {
             className="btn-premium w-full sm:w-auto min-h-12 px-7 text-base font-semibold gap-2.5 rounded-xl group shadow-lg"
           >
             <Link to={routes.register}>
-              Get started
+              {isSi ? "ආදර්ශනය අත්හදා බලන්න" : "Get started"}
               <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -100,7 +106,7 @@ export function LandingPage() {
             size="lg"
             className="w-full sm:w-auto min-h-12 px-6 text-base font-medium rounded-xl border-border/80 hover:bg-accent/60 shadow-xs"
           >
-            <Link to={routes.login}>Sign in</Link>
+            <Link to={routes.login}>{isSi ? "ඇතුල් වන්න" : "Sign in"}</Link>
           </Button>
         </div>
 
@@ -108,17 +114,17 @@ export function LandingPage() {
         <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pt-2 flex-wrap">
           <span className="flex items-center gap-1.5">
             <ShieldCheck aria-hidden className="size-4 text-primary" />
-            Private caregiver accounts
+            {isSi ? "පෞද්ගලික දත්ත සුරක්ෂිතයි" : "Private caregiver accounts"}
           </span>
           <span className="hidden sm:inline">•</span>
           <span className="flex items-center gap-1.5">
             <Smartphone aria-hidden className="size-4 text-primary" />
-            Works on mobile & desktop
+            {isSi ? "ජංගම දුරකථන සහ පරිගණක සඳහා" : "Works on mobile & desktop"}
           </span>
           <span className="hidden sm:inline">•</span>
           <span className="flex items-center gap-1.5">
             <BookOpen aria-hidden className="size-4 text-primary" />
-            Parent-reported records
+            {isSi ? "ජාතික එන්නත් කාලසටහනට අනුකූලයි" : "Parent-reported records"}
           </span>
         </div>
       </section>
@@ -133,10 +139,12 @@ export function LandingPage() {
             id="problem-heading"
             className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
           >
-            Why We Are Building SuwaDaru
+            {isSi ? "අප සුවදරු ගොඩනගන්නේ ඇයි?" : "Why We Are Building SuwaDaru"}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Sri Lanka&apos;s physical CHDR is vital, but paper records face everyday challenges over five years of active handling.
+            {isSi
+              ? "ශ්‍රී ලංකාවේ භෞතික CHDR පොත අතිශය වැදගත් වුවත්, වසර පහක් පුරා කඩදාසි සටහන් පොත් නිතර භාවිතා කිරීමේදී අභියෝග රැසකට මුහුණ දෙයි."
+              : "Sri Lanka's physical CHDR is vital, but paper records face everyday challenges over five years of active handling."}
           </p>
         </div>
 
@@ -147,24 +155,24 @@ export function LandingPage() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
                 <FileText aria-hidden className="size-4" />
               </div>
-              <span>Paper CHDR Realities</span>
+              <span>{isSi ? "කඩදාසි CHDR පොතේ අභියෝග" : "Paper CHDR Realities"}</span>
             </div>
             <ul className="space-y-3 text-xs sm:text-sm text-muted-foreground">
               <li className="flex items-start gap-2.5">
                 <span className="text-amber-600 font-bold">•</span>
-                <span>Paper books can be misplaced, torn, or damaged during rain and travel.</span>
+                <span>{isSi ? "වැස්ස, ගමන් බිමන් සහ භාවිතයේදී කඩදාසි පොත් ඉක්මනින් හානි වීමට හෝ නැතිවීමට ඉඩ ඇත." : "Paper books can be misplaced, torn, or damaged during rain and travel."}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-amber-600 font-bold">•</span>
-                <span>Calculating exact immunization due dates from birthdates causes confusion.</span>
+                <span>{isSi ? "උපන් දිනය අනුව එන්නත් ලබා දිය යුතු නියමිත දින ගණනය කරගැනීම අපහසු විය හැක." : "Calculating exact immunization due dates from birthdates causes confusion."}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-amber-600 font-bold">•</span>
-                <span>Growth measurements are recorded across paper pages, making trends hard to visualize.</span>
+                <span>{isSi ? "විවිධ පිටුවල ලියන ලද බර මිනුම් මගින් වර්ධනයේ ප්‍රගතිය එකවර බලාගැනීම අපහසුය." : "Growth measurements are recorded across paper pages, making trends hard to visualize."}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-amber-600 font-bold">•</span>
-                <span>Generic online advice lacks Sri Lankan complementary feeding practices and cultural context.</span>
+                <span>{isSi ? "අන්තර්ජාලයේ ඇති සාමාන්‍ය උපදෙස් ශ්‍රී ලාංකික දේශීය ආහාර සහ සංස්කෘතික පසුබිමට නොගැළපේ." : "Generic online advice lacks Sri Lankan complementary feeding practices and cultural context."}</span>
               </li>
             </ul>
           </div>
@@ -175,24 +183,24 @@ export function LandingPage() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
                 <HeartHandshake aria-hidden className="size-4" />
               </div>
-              <span>How SuwaDaru Supports Caregivers</span>
+              <span>{isSi ? "සුවදරු දෙමාපියන්ට උපකාර වන ආකාරය" : "How SuwaDaru Supports Caregivers"}</span>
             </div>
             <ul className="space-y-3 text-xs sm:text-sm text-foreground/90 font-medium">
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Always in your pocket alongside your family-held paper record.</span>
+                <span>{isSi ? "භෞතික සටහන් පොතට අමතරව ඕනෑම තැනකදී දුරකථනයෙන් පහසුවෙන් පරිශීලනය කළ හැක." : "Always in your pocket alongside your family-held paper record."}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Vaccination dose history saved from your child’s health record.</span>
+                <span>{isSi ? "දරුවාගේ උපන් දිනයට අදාළව එන්නත් දින සහ ඉතිහාසය ස්වයංක්‍රීයව පෙන්වයි." : "Vaccination dose history saved from your child’s health record."}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Growth charts from your child’s recorded measurements.</span>
+                <span>{isSi ? "ලෝක සෞඛ්‍ය සංවිධානයේ (WHO) ප්‍රමිතීන්ට අනුව බර වර්ධන ප්‍රස්ථාර පැහැදිලිව සටහන් වේ." : "Growth charts from your child’s recorded measurements."}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 aria-hidden className="size-4 shrink-0 text-primary mt-0.5" />
-                <span>Nutrition notes and questions for your next clinic visit.</span>
+                <span>{isSi ? "දේශීය ආහාර මත පදනම් වූ විශ්වාසදායක පෝෂණ මගපෙන්වීම් සහ ආරක්ෂක උපදෙස්." : "Nutrition notes and questions for your next clinic visit."}</span>
               </li>
             </ul>
           </div>
@@ -206,10 +214,10 @@ export function LandingPage() {
             id="features-heading"
             className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
           >
-            Core Companion Modules
+            {isSi ? "ප්‍රධාන සේවා මොඩියුල" : "Core Companion Modules"}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Designed for simplicity, clear attribution, and zero medical guesswork.
+            {isSi ? "පහසුවෙන් භාවිත කළ හැකි පරිදි, වෛද්‍යමය අනුමානවලින් තොරව නිර්මාණය කර ඇත." : "Designed for simplicity, clear attribution, and zero medical guesswork."}
           </p>
         </div>
 
@@ -221,11 +229,11 @@ export function LandingPage() {
                 <Syringe aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                Vaccination Records
+                {isSi ? "ප්‍රතිශක්තිකරණ එන්නත්" : "Vaccination Records"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Save parent-reported doses and their dates. Reviewed schedule milestones appear when a published schedule is available.
+              {isSi ? "දරුවාගේ එන්නත් මාත්‍රා සහ දින සටහන් කර තබා ගන්න. ජාතික කාලසටහනට අදාළ නියමිත දින ස්වයංක්‍රීයව දිස්වේ." : "Save parent-reported doses and their dates. Reviewed schedule milestones appear when a published schedule is available."}
             </CardContent>
           </Card>
 
@@ -236,11 +244,11 @@ export function LandingPage() {
                 <TrendingUp aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                Growth Measurements
+                {isSi ? "වර්ධන මිනුම් සටහන්" : "Growth Measurements"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              View recorded measurements over time. Reference curves appear only when sourced data is available. No automated clinical diagnosis.
+              {isSi ? "කාලයත් සමඟ දරුවාගේ බර සහ උස සටහන් කරන්න. ලෝක සෞඛ්‍ය සංවිධානයේ ප්‍රමිතීන් සමඟ සංසන්දනය කළ හැක." : "View recorded measurements over time. Reference curves appear only when sourced data is available. No automated clinical diagnosis."}
             </CardContent>
           </Card>
 
@@ -251,11 +259,11 @@ export function LandingPage() {
                 <Salad aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                Nutrition Notes
+                {isSi ? "පෝෂණ සහ ආහාර සහකාර" : "Nutrition Notes"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Save feeding observations and questions for your clinic visit. AI advice is not connected.
+              {isSi ? "දේශීය ශ්‍රී ලාංකික ආහාර, පරිප්පු, එළවළු, කැඳ සහ හිරවීම් වැළැක්වීමේ උපදෙස් සුවදරු AI වෙතින් විමසන්න." : "Save feeding observations and questions for your clinic visit. AI advice is not connected."}
             </CardContent>
           </Card>
 
@@ -266,11 +274,11 @@ export function LandingPage() {
                 <CalendarClock aria-hidden className="size-5" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">
-                MOH Clinic Visits
+                {isSi ? "MOH සායන හමුවීම්" : "MOH Clinic Visits"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Manage scheduled clinic dates and locations. Clear reminder previews that never falsely claim SMS or push notifications were sent.
+              {isSi ? "නියමිත සායන දිනයන්, ස්ථාන සහ පවුල් සෞඛ්‍ය සේවා නිලධාරිනිය හමුවීමට පෙර සටහන් පිළියෙල කරගන්න." : "Manage scheduled clinic dates and locations. Clear reminder previews that never falsely claim SMS or push notifications were sent."}
             </CardContent>
           </Card>
         </div>
@@ -283,10 +291,10 @@ export function LandingPage() {
             id="steps-heading"
             className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
           >
-            How SuwaDaru Works in 3 Steps
+            {isSi ? "සුවදරු පියවර 3කින් භාවිතා කරන්නේ කෙසේද" : "How SuwaDaru Works in 3 Steps"}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Create an account and save your child’s records securely.
+            {isSi ? "පහසුවෙන් ගිණුමක් සාදා දරුවාගේ සෞඛ්‍ය සටහන් සුරක්ෂිතව තබා ගන්න." : "Create an account and save your child’s records securely."}
           </p>
         </div>
 
@@ -295,9 +303,11 @@ export function LandingPage() {
             <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 to-rose-700 text-white font-extrabold text-sm shadow-md ring-2 ring-primary/20">
               1
             </div>
-            <h3 className="font-semibold text-foreground text-sm sm:text-base">Select or Add a Profile</h3>
+            <h3 className="font-semibold text-foreground text-sm sm:text-base">
+              {isSi ? "දරුවාගේ පැතිකඩ එක් කරන්න" : "Select or Add a Profile"}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Add your child’s profile, then record measurements, doses and appointments.
+              {isSi ? "දරුවාගේ උපන් දිනය සහ තොරතුරු ඇතුළත් කර එන්නත් සහ වර්ධන සටහන් එක් කරන්න." : "Add your child’s profile, then record measurements, doses and appointments."}
             </p>
           </div>
 
@@ -305,9 +315,11 @@ export function LandingPage() {
             <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-amber-600 text-white font-extrabold text-sm shadow-md ring-2 ring-primary/20">
               2
             </div>
-            <h3 className="font-semibold text-foreground text-sm sm:text-base">Review Milestones & Health</h3>
+            <h3 className="font-semibold text-foreground text-sm sm:text-base">
+              {isSi ? "සන්ධිස්ථාන සහ සෞඛ්‍යය නිරීක්ෂණය" : "Review Milestones & Health"}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Review vaccination history, track measurements, and save feeding observations for your clinic visit.
+              {isSi ? "එන්නත් ලබා දිය යුතු දිනයන් සහ බර වර්ධනය පරීක්ෂා කර පෝෂණ සටහන් සුරකින්න." : "Review vaccination history, track measurements, and save feeding observations for your clinic visit."}
             </p>
           </div>
 
@@ -315,9 +327,11 @@ export function LandingPage() {
             <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-600 to-rose-600 text-white font-extrabold text-sm shadow-md ring-2 ring-amber-500/20">
               3
             </div>
-            <h3 className="font-semibold text-foreground text-sm sm:text-base">Prepared for the PHM Clinic</h3>
+            <h3 className="font-semibold text-foreground text-sm sm:text-base">
+              {isSi ? "සායනය සඳහා සූදානම් වන්න" : "Prepared for the PHM Clinic"}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Arrive at clinic appointments with organized questions and dates ready to share with your Public Health Midwife.
+              {isSi ? "පවුල් සෞඛ්‍ය සේවා නිලධාරිනිය හමුවීමට පෙර නිසි සටහන් සහ ප්‍රශ්න සූදානම් කරගෙන යන්න." : "Arrive at clinic appointments with organized questions and dates ready to share with your Public Health Midwife."}
             </p>
           </div>
         </div>
@@ -335,13 +349,17 @@ export function LandingPage() {
             </div>
             <div className="space-y-1.5 text-xs sm:text-sm">
               <h3 className="font-bold text-amber-950 dark:text-amber-200">
-                Important Boundary & Privacy Notice
+                {isSi ? "වැදගත් වෛද්‍ය සහ නීතිමය නිවේදනය" : "Important Boundary & Privacy Notice"}
               </h3>
               <p className="text-amber-900/90 dark:text-amber-300/80 leading-relaxed">
-                SuwaDaru is a student and hackathon demonstration companion. It is <strong>not</strong> an official government service, a certified medical device, an authorized clinical record, or an endorsement by the Ministry of Health or Epidemiology Unit.
+                {isSi
+                  ? "සුවදරු යනු අධ්‍යාපනික සහ සත්කාරක අත්වැලක් පමණි. මෙය නිල රජයේ සේවාවක්, වෛද්‍ය උපකරණයක් හෝ සායනික රෝග විනිශ්චය සේවාවක් නොවේ."
+                  : "SuwaDaru is a student and hackathon demonstration companion. It is not an official government service, a certified medical device, an authorized clinical record, or an endorsement by the Ministry of Health or Epidemiology Unit."}
               </p>
               <p className="text-amber-900/90 dark:text-amber-300/80 leading-relaxed">
-                The physical, family-held <strong>Child Health Development Record (CHDR)</strong> and guidance from your Public Health Midwife (PHM) or medical doctor remain the sole authoritative clinical records. Records are saved to your authenticated account.
+                {isSi
+                  ? "ඔබ සතු නිල ළමා සෞඛ්‍ය සංවර්ධන වාර්තාව (CHDR පොත) සහ ඔබේ ප්‍රදේශයේ පවුල් සෞඛ්‍ය සේවා නිලධාරිනියගේ හෝ වෛද්‍යවරයාගේ උපදෙස් ප්‍රමුඛ වේ."
+                  : "The physical, family-held Child Health Development Record (CHDR) and guidance from your Public Health Midwife (PHM) or medical doctor remain the sole authoritative clinical records. Records are saved to your authenticated account."}
               </p>
             </div>
           </div>
@@ -351,10 +369,10 @@ export function LandingPage() {
       {/* 6. Bottom Call to Action */}
       <section className="text-center max-w-xl mx-auto px-4 space-y-4 pb-6">
         <h2 className="text-2xl font-bold tracking-tight text-foreground">
-          Ready to get started?
+          {isSi ? "දැන්ම ආරම්භ කිරීමට සූදානම්ද?" : "Ready to get started?"}
         </h2>
         <p className="text-sm text-muted-foreground">
-          Create your caregiver account and add your first child profile.
+          {isSi ? "ඔබේ ගිණුම සාදා පළමු ළමා පැතිකඩ එක් කරන්න." : "Create your caregiver account and add your first child profile."}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
           <Button
@@ -363,7 +381,7 @@ export function LandingPage() {
             className="btn-premium w-full sm:w-auto min-h-12 px-7 text-base font-semibold gap-2.5 rounded-xl group shadow-lg"
           >
             <Link to={routes.register}>
-              Get started
+              {isSi ? "නොමිලේ ආරම්භ කරන්න" : "Get started"}
               <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -373,7 +391,7 @@ export function LandingPage() {
             size="lg"
             className="w-full sm:w-auto min-h-12 px-6 text-base font-medium rounded-xl border-border/80 hover:bg-accent/60 shadow-xs"
           >
-            <Link to={routes.login}>Sign In</Link>
+            <Link to={routes.login}>{isSi ? "ඇතුල් වන්න" : "Sign In"}</Link>
           </Button>
         </div>
       </section>

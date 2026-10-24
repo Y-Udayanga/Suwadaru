@@ -47,7 +47,8 @@ import {
 
 export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
   const { updateChild, children } = useChild()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const isSi = language === "si"
 
   const [fetchedChild, setChild] = useState<Awaited<ReturnType<typeof childService.get>> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -179,7 +180,11 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
     <div className="flex flex-col gap-6 max-w-4xl">
       <PageHeader
         title={child.name}
-        subtitle={`Child profile • Born ${child.dateOfBirth} (${age.text})`}
+        subtitle={
+          isSi
+            ? `ළමා පැතිකඩ • උපන් දිනය ${child.dateOfBirth} (${age.text})`
+            : `Child profile • Born ${child.dateOfBirth} (${age.text})`
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -200,7 +205,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
                 className="gap-2"
               >
                 <Edit2 aria-hidden className="size-4" />
-                Edit Profile
+                {isSi ? "පැතිකඩ සංස්කරණය" : "Edit Profile"}
               </Button>
             ) : (
               <Button
@@ -213,7 +218,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
                 className="gap-2"
               >
                 <X aria-hidden className="size-4" />
-                Cancel Editing
+                {isSi ? "අවලංගු කරන්න" : "Cancel Editing"}
               </Button>
             )}
           </div>
@@ -235,7 +240,15 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
         <div className="flex items-center gap-2.5">
           <ShieldAlert aria-hidden className="size-4 shrink-0 text-amber-700 dark:text-amber-400" />
           <span>
-            <strong>Caregiver profile:</strong> Changes are saved to your account. Health entries remain parent-reported unless independently verified.
+            {isSi ? (
+              <>
+                <strong>සත්කාරක පැතිකඩ:</strong> වෙනස්කම් ඔබේ ගිණුමේ සුරැකේ. සෞඛ්‍ය සටහන් ස්වාධීනව තහවුරු කරන තුරු දෙමාපියන් විසින් සටහන් කළ ලෙස පවතී.
+              </>
+            ) : (
+              <>
+                <strong>Caregiver profile:</strong> Changes are saved to your account. Health entries remain parent-reported unless independently verified.
+              </>
+            )}
           </span>
         </div>
       </div>
@@ -246,7 +259,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
           className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3 text-xs text-primary"
         >
           <CheckCircle2 aria-hidden className="size-4 shrink-0" />
-          <span>Profile changes saved successfully!</span>
+          <span>{isSi ? "පැතිකඩ වෙනස්කම් සාර්ථකව සුරකින ලදි!" : "Profile changes saved successfully!"}</span>
         </div>
       )}
 
@@ -255,35 +268,35 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             <StatCard
-              label="Age"
+              label={isSi ? "වයස" : "Age"}
               value={age.text}
-              detail={`Born on ${child.dateOfBirth}`}
+              detail={isSi ? `උපත: ${child.dateOfBirth}` : `Born on ${child.dateOfBirth}`}
             />
             <StatCard
-              label="Sex / Reference"
-              value={child.sex === "female" ? "Female" : "Male"}
-              detail={`WHO Standards: ${child.sex === "female" ? "Girls" : "Boys"}`}
+              label={isSi ? "ස්ත්‍රී / පුරුෂ" : "Sex / Reference"}
+              value={child.sex === "female" ? (isSi ? "ගැහැණු" : "Female") : (isSi ? "පිරිමි" : "Male")}
+              detail={isSi ? `WHO ප්‍රමිතීන්: ${child.sex === "female" ? "ගැහැණු ළමුන්" : "පිරිමි ළමුන්"}` : `WHO Standards: ${child.sex === "female" ? "Girls" : "Boys"}`}
             />
             <StatCard
-              label="Birth Weight"
+              label={isSi ? "උපත් බර" : "Birth Weight"}
               value={
                 child.birthWeightKg !== undefined
                   ? `${child.birthWeightKg} kg`
-                  : "Not recorded"
+                  : isSi ? "සටහන් කර නැත" : "Not recorded"
               }
-              detail="Measured at birth"
+              detail={isSi ? "උපතේදී මැන බැලූ බර" : "Measured at birth"}
             />
             <StatCard
-              label="MOH Clinic"
-              value={child.clinicName || "Unassigned"}
-              detail="Primary clinic"
+              label={isSi ? "MOH සායනය" : "MOH Clinic"}
+              value={child.clinicName || (isSi ? "නම් කර නැත" : "Unassigned")}
+              detail={isSi ? "ප්‍රාථමික සෞඛ්‍ය සායනය" : "Primary clinic"}
             />
           </div>
 
           {/* Child Health Modules Navigation Grid */}
           <div className="space-y-3 pt-2">
             <h2 className="text-base font-bold text-foreground">
-              Health Record Modules for {child.name}
+              {isSi ? `${child.name} ගේ සෞඛ්‍ය සටහන් මොඩියුල` : `Health Record Modules for ${child.name}`}
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Immunization */}
@@ -297,15 +310,15 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      Vaccination Timeline
+                      {isSi ? "ප්‍රතිශක්තිකරණ එන්නත් කාලසටහන" : "Vaccination Timeline"}
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Sri Lanka EPI schedule milestones derived from birthdate.
+                      {isSi ? "දරුවාගේ උපන් දිනය අනුව ගණනය කළ ජාතික EPI එන්නත් සන්ධිස්ථාන." : "Sri Lanka EPI schedule milestones derived from birthdate."}
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 text-xs font-medium text-primary">
-                  View Schedule →
+                  {isSi ? "කාලසටහන බලන්න →" : "View Schedule →"}
                 </div>
               </Link>
 
@@ -320,15 +333,15 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      Growth Monitoring
+                      {isSi ? "වර්ධන නිරීක්ෂණය (WHO)" : "Growth Monitoring"}
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Weight-for-age charts matched with {child.sex} WHO standards.
+                      {isSi ? `ලෝක සෞඛ්‍ය සංවිධානයේ (${child.sex === "female" ? "ගැහැණු" : "පිරිමි"}) ප්‍රමිතීන්ට අදාළ බර වක්‍රය.` : `Weight-for-age charts matched with ${child.sex} WHO standards.`}
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 text-xs font-medium text-primary">
-                  Open Growth Tracker →
+                  {isSi ? "වර්ධන සටහන් බලන්න →" : "Open Growth Tracker →"}
                 </div>
               </Link>
 
@@ -343,15 +356,15 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      Feeding & Nutrition
+                      {isSi ? "පෝෂණ සහ ආහාර සහකාර" : "Feeding & Nutrition"}
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Age-appropriate feeding education and local Sri Lankan food guidance.
+                      {isSi ? "වයසට ගැළපෙන ආහාර, දේශීය කැඳ වර්ග සහ ශ්‍රී ලාංකික පෝෂණ මාර්ගෝපදේශ." : "Age-appropriate feeding education and local Sri Lankan food guidance."}
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 text-xs font-medium text-primary">
-                  Start Nutrition Chat →
+                  {isSi ? "පෝෂණ සටහන් බලන්න →" : "Start Nutrition Chat →"}
                 </div>
               </Link>
 
@@ -366,15 +379,15 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      Clinic Appointments
+                      {isSi ? "MOH සායන හමුවීම්" : "Clinic Appointments"}
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Manage upcoming MOH clinic dates and reminders.
+                      {isSi ? "ඉදිරි MOH සායන දිනයන්, ස්ථාන සහ මතක් කිරීම් කළමනාකරණය කරන්න." : "Manage upcoming MOH clinic dates and reminders."}
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 text-xs font-medium text-primary">
-                  Manage Visits →
+                  {isSi ? "සායන හමුවීම් බලන්න →" : "Manage Visits →"}
                 </div>
               </Link>
             </div>

@@ -60,6 +60,7 @@ import { growthService } from "./growthService"
 const GROWTH_DISCLAIMER_TEXT = 'Measurements are caregiver-reported. Clinical status has not been assessed.'
 const CLINICAL_ASSESSMENT_NOTICE = 'Discuss growth concerns with your midwife or doctor.'
 import { formatCalendarDate, isFutureDate } from "../vaccinations/calendarDate"
+import { useLanguage } from "@/hooks/useLanguage"
 
 // ---------------------------------------------------------------------------
 // Form state & page reducer
@@ -340,6 +341,8 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
     successToast,
   } = state
 
+  const { language } = useLanguage()
+  const isSi = language === "si"
   const childAgeMonths = ageInMonths(child.dateOfBirth, today)
   const chartData = buildChartData(child, measurements, reference)
   const validWeightCount = measurements.filter((m) => m.weightKg != null && m.weightKg > 0).length
@@ -458,17 +461,17 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
           <div>
             <div className="flex items-center gap-2 text-primary font-medium text-sm mb-1">
               <TrendingUp className="h-4 w-4" aria-hidden />
-              <span>Pediatric Growth Tracking</span>
+              <span>{isSi ? "ළමා වර්ධන නිරීක්ෂණය" : "Pediatric Growth Tracking"}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Weight-for-Age Monitoring
+              {isSi ? "වයසට අදාළ බර වර්ධන සටහන (WHO)" : "Weight-for-Age Monitoring"}
             </h1>
           </div>
           <Link
             to={routes.child(child.id)}
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors self-start sm:self-auto"
           >
-            <span>Back to {child.name}&apos;s profile</span>
+            <span>{isSi ? `${child.name} ගේ පැතිකඩ වෙත` : `Back to ${child.name}'s profile`}</span>
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -483,14 +486,22 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-foreground">{child.name}</h2>
                 <span className="capitalize text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                  {child.sex} chart
+                  {isSi ? `${child.sex === "female" ? "ගැහැණු" : "පිරිමි"} සටහන` : `${child.sex} chart`}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-medium">
-                  Status: Not Assessed
+                  {isSi ? "තත්ත්වය: තක්සේරු කර නැත" : "Status: Not Assessed"}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Born: <span className="font-medium text-foreground">{formatCalendarDate(child.dateOfBirth)}</span> · Current age: <span className="font-medium text-foreground">{formatAge(childAgeMonths)}</span> ({childAgeMonths} completed months)
+                {isSi ? (
+                  <>
+                    උපත: <span className="font-medium text-foreground">{formatCalendarDate(child.dateOfBirth)}</span> · වයස: <span className="font-medium text-foreground">{formatAge(childAgeMonths)}</span> (සම්පූර්ණ මාස {childAgeMonths})
+                  </>
+                ) : (
+                  <>
+                    Born: <span className="font-medium text-foreground">{formatCalendarDate(child.dateOfBirth)}</span> · Current age: <span className="font-medium text-foreground">{formatAge(childAgeMonths)}</span> ({childAgeMonths} completed months)
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -502,7 +513,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
               >
                 <PlusCircle className="h-4 w-4" aria-hidden />
-                <span>Add Measurement</span>
+                <span>{isSi ? "මිනුමක් එක් කරන්න" : "Add Measurement"}</span>
               </button>
             )}
           </div>

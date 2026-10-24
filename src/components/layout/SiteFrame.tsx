@@ -61,6 +61,9 @@ function PublicHeader() {
 
 
 export function PublicLayout({ children }: { children: ReactNode }) {
+  const { language } = useLanguage()
+  const isSi = language === "si"
+
   return (
     <div className="relative flex min-h-svh min-w-0 flex-col bg-background/30 text-foreground transition-colors duration-300">
       <AmbientBackground />
@@ -76,7 +79,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           "transition-transform duration-150",
         )}
       >
-        Skip to content
+        {isSi ? "ප්‍රධාන අන්තර්ගතයට යන්න" : "Skip to content"}
       </a>
 
       <PublicHeader />
@@ -85,10 +88,11 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <footer className="border-t border-border bg-card px-4 py-6">
-        <div className="mx-auto max-w-6xl text-xs text-muted-foreground">
-          SuwaDaru is a caregiver companion. Not a clinical record, a
-          government service, or a substitute for a midwife or doctor.
+      <footer className="border-t border-border bg-card/60 backdrop-blur-sm px-4 py-6">
+        <div className="mx-auto max-w-6xl text-xs text-muted-foreground text-center sm:text-left leading-relaxed">
+          {isSi
+            ? "සුවදරු යනු දෙමාපිය සහ සත්කාරක අත්වැලකි. මෙය සායනික වාර්තාවක්, රජයේ නිල සේවාවක් හෝ වෛද්‍යවරයෙකුගේ හෝ පවුල් සෞඛ්‍ය සේවා නිලධාරිනියගේ උපදෙස් වෙනුවට භාවිත කළ හැකි ආදේශකයක් නොවේ."
+            : "SuwaDaru is a caregiver companion. Not a clinical record, a government service, or a substitute for a midwife or doctor."}
         </div>
       </footer>
     </div>

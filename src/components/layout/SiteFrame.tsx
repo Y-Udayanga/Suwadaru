@@ -22,7 +22,7 @@ const publicNavDef: { to: string; labelKey?: TranslationKey; fallback: string; e
 
 const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "inline-flex min-h-10 items-center rounded-xl px-3.5 text-sm font-semibold",
+    "inline-flex min-h-11 whitespace-nowrap items-center rounded-xl px-3.5 text-sm font-semibold",
     "transition-all duration-200",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     isActive
@@ -35,14 +35,15 @@ function PublicHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/75 shadow-xs transition-colors duration-200">
-      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <AppLogo asLink />
+      <div className="mx-auto grid w-full max-w-6xl min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-3 sm:px-4">
+        <AppLogo asLink className="min-w-0 [&>span:last-child>span:last-child]:hidden sm:[&>span:last-child>span:last-child]:block" />
 
-        {/* Spacer */}
-        <div className="flex-1" />
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <nav aria-label="Public navigation">
-            <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
+        <div className="flex items-center gap-2">
+          <LanguageToggle compact />
+          <ThemeToggle variant="icon" />
+        </div>
+          <nav aria-label="Public navigation" className="col-span-2 min-w-0 overflow-x-auto overscroll-x-contain pb-1">
+            <ul className="m-0 flex w-max min-w-full list-none gap-1 p-0">
               {publicNavDef.map((item) => (
                 <li key={item.to}>
                   <NavLink to={item.to} end={item.end} className={publicLinkClass}>
@@ -52,9 +53,7 @@ function PublicHeader() {
               ))}
             </ul>
           </nav>
-          <LanguageToggle />
-          <ThemeToggle />
-        </div>
+
       </div>
     </header>
   )

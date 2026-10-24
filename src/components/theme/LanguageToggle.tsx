@@ -23,7 +23,7 @@ export function LanguageToggle({ className, compact = false }: LanguageTogglePro
       }
       className={cn(
         "group relative inline-flex items-center justify-center cursor-pointer select-none",
-        "h-9 rounded-full border border-border/80 bg-card/80 hover:bg-accent/80 hover:border-accent-foreground/30 shadow-2xs backdrop-blur-sm",
+        "h-11 sm:h-9 shrink-0 rounded-full border border-border/80 bg-card/80 hover:bg-accent/80 hover:border-accent-foreground/30 shadow-2xs backdrop-blur-sm",
         "transition-all duration-300",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-95",
         compact ? "px-2.5 gap-1.5" : "px-3 gap-2",

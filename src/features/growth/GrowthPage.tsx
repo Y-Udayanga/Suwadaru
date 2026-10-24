@@ -502,7 +502,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
           className="rounded-xl border border-primary/30 bg-card p-5 shadow-sm space-y-4 animate-in fade-in"
           aria-labelledby="add-measurement-title"
         >
-          <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
             <div>
               <h3 id="add-measurement-title" className="text-base font-bold text-foreground">
                 Record Growth Measurement
@@ -739,7 +739,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
 
       {/* ── State 3: Several-point state Summary Metrics ── */}
       {isSeveralPointsState && latestMeasurement && firstMeasurement && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 xl:grid-cols-4 gap-3">
           <div className="rounded-xl border bg-card p-3.5 space-y-1 shadow-2xs">
             <span className="text-[11px] text-muted-foreground font-medium block">
               Latest Weight
@@ -987,10 +987,10 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
       {/* ── Accessible Measurement Table (NFR-05) ── */}
       {measurements.length > 0 && (
         <section
-          className="rounded-xl border bg-card shadow-xs overflow-hidden space-y-2 p-5"
+          className="min-w-0 rounded-xl border bg-card shadow-xs overflow-hidden space-y-2 p-3 sm:p-5"
           aria-labelledby="table-heading"
         >
-          <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
             <div>
               <h3 id="table-heading" className="text-base font-bold text-foreground">
                 Recorded Measurement History
@@ -1004,7 +1004,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overscroll-x-contain" tabIndex={0} role="region" aria-label="Measurement history, scroll horizontally for more columns">
             <table className="w-full text-left text-xs border-collapse">
               <caption className="sr-only">
                 Complete growth measurement log for {child.name} including date, child age, weight, length/height, head circumference, and data provenance.

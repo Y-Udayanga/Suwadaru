@@ -26,48 +26,59 @@ export const AmbientBackground = memo(function AmbientBackground({
         className,
       )}
     >
-      {/* ── Layer 1: Animated Mesh Glow Orbs ── */}
-      {/* Orb 1: Warm Rose / Coral Aura (Top-Left) */}
+      {/* ── Layer 1: Animated Multi-Color Mesh Glow Orbs ── */}
+      {/* Orb 1: Warm Vibrant Rose / Coral Aura (Top-Left) */}
       <div
         className={cn(
-          "absolute -top-[12%] -left-[10%] h-[55vw] w-[55vw] max-h-[650px] max-w-[650px] rounded-full",
-          "bg-gradient-to-br from-rose-400/25 via-pink-300/18 to-transparent",
-          "dark:from-rose-600/15 dark:via-rose-900/18 dark:to-transparent",
-          "blur-[95px] md:blur-[130px]",
+          "absolute -top-[10%] -left-[8%] h-[55vw] w-[55vw] max-h-[700px] max-w-[700px] rounded-full",
+          "bg-gradient-to-br from-rose-500/35 via-pink-400/25 to-amber-300/20",
+          "dark:from-rose-600/25 dark:via-rose-900/28 dark:to-transparent",
+          "blur-[80px] md:blur-[110px]",
           "animate-ambient-1",
         )}
       />
 
-      {/* Orb 2: Warm Amber / Honey Starlight (Top-Right) */}
+      {/* Orb 2: Warm Sunshine Gold & Amber (Top-Right) */}
       <div
         className={cn(
-          "absolute -top-[10%] -right-[8%] h-[50vw] w-[50vw] max-h-[600px] max-w-[600px] rounded-full",
-          "bg-gradient-to-bl from-amber-300/22 via-orange-200/15 to-transparent",
-          "dark:from-amber-600/12 dark:via-amber-900/14 dark:to-transparent",
-          "blur-[90px] md:blur-[120px]",
+          "absolute -top-[8%] -right-[6%] h-[52vw] w-[52vw] max-h-[650px] max-w-[650px] rounded-full",
+          "bg-gradient-to-bl from-amber-400/35 via-orange-300/25 to-rose-300/20",
+          "dark:from-amber-500/20 dark:via-amber-900/22 dark:to-transparent",
+          "blur-[85px] md:blur-[115px]",
           "animate-ambient-2",
         )}
       />
 
-      {/* Orb 3: Soft Mint / Turquoise Calming Care (Bottom-Left) */}
+      {/* Orb 3: Fresh Mint & Care Emerald (Mid-Left) */}
       <div
         className={cn(
-          "absolute -bottom-[15%] -left-[5%] h-[48vw] w-[48vw] max-h-[580px] max-w-[580px] rounded-full",
-          "bg-gradient-to-tr from-teal-300/16 via-emerald-200/12 to-transparent",
-          "dark:from-teal-700/10 dark:via-emerald-950/15 dark:to-transparent",
-          "blur-[85px] md:blur-[120px]",
+          "absolute top-[40%] -left-[12%] h-[48vw] w-[48vw] max-h-[600px] max-w-[600px] rounded-full",
+          "bg-gradient-to-tr from-emerald-400/25 via-teal-300/20 to-sky-300/15",
+          "dark:from-emerald-700/18 dark:via-teal-950/20 dark:to-transparent",
+          "blur-[80px] md:blur-[110px]",
           "animate-ambient-3",
         )}
       />
 
-      {/* Orb 4: Rose Blush & Velvet Center Warmth (Bottom-Right) */}
+      {/* Orb 4: Rose Blush & Maternal Violet Center Warmth (Bottom-Right) */}
       <div
         className={cn(
-          "absolute -bottom-[12%] -right-[10%] h-[52vw] w-[52vw] max-h-[620px] max-w-[620px] rounded-full",
-          "bg-gradient-to-tl from-rose-300/20 via-pink-200/15 to-transparent",
-          "dark:from-rose-700/12 dark:via-purple-950/15 dark:to-transparent",
-          "blur-[90px] md:blur-[125px]",
+          "absolute top-[50%] -right-[10%] h-[52vw] w-[52vw] max-h-[650px] max-w-[650px] rounded-full",
+          "bg-gradient-to-tl from-purple-400/25 via-pink-300/25 to-rose-400/30",
+          "dark:from-purple-800/18 dark:via-rose-950/22 dark:to-transparent",
+          "blur-[85px] md:blur-[115px]",
           "animate-ambient-1",
+        )}
+      />
+
+      {/* Orb 5: Honey Amber Center Hearth (Center-Bottom) */}
+      <div
+        className={cn(
+          "absolute -bottom-[10%] left-[25%] h-[45vw] w-[45vw] max-h-[550px] max-w-[550px] rounded-full",
+          "bg-gradient-to-t from-amber-400/25 via-rose-300/20 to-transparent",
+          "dark:from-amber-600/15 dark:via-rose-900/15 dark:to-transparent",
+          "blur-[75px] md:blur-[105px]",
+          "animate-ambient-2",
         )}
       />
 

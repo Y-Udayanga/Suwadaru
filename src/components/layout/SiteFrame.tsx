@@ -56,7 +56,7 @@ function PublicHeader() {
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-svh min-w-0 flex-col bg-background/80 text-foreground transition-colors duration-300">
+    <div className="relative flex min-h-svh min-w-0 flex-col bg-background/30 text-foreground transition-colors duration-300">
       <AmbientBackground />
       {/* Skip link */}
 

@@ -43,6 +43,7 @@ import {
   isoDateTimeToLocal,
   formatAppointmentDateTime,
 } from "./appointmentHelpers"
+import { useLanguage } from "@/hooks/useLanguage"
 
 // ---------------------------------------------------------------------------
 // Types & State
@@ -214,23 +215,26 @@ function reducer(state: PageState, action: Action): PageState {
 // Status Badge Component
 // ---------------------------------------------------------------------------
 function StatusBadge({ status }: { status: ClinicAppointment["status"] }) {
+  const { language } = useLanguage()
+  const isSi = language === "si"
+
   const map: Record<
     ClinicAppointment["status"],
     { label: string; cls: string; Icon: React.ElementType }
   > = {
     scheduled: {
-      label: "Scheduled",
+      label: isSi ? "නියමිතයි" : "Scheduled",
       cls: "bg-primary/10 text-primary border-primary/25",
       Icon: Clock,
     },
 
     completed: {
-      label: "Completed",
-      cls: "bg-green-50 text-green-800 border-green-200",
+      label: isSi ? "සම්පූර්ණයි" : "Completed",
+      cls: "bg-green-50 text-green-800 border-green-200 dark:bg-green-950/60 dark:text-green-300 dark:border-green-800",
       Icon: CheckCircle2,
     },
     cancelled: {
-      label: "Cancelled",
+      label: isSi ? "අවලංගුයි" : "Cancelled",
       cls: "bg-muted text-muted-foreground border-border",
       Icon: XCircle,
     },
@@ -279,6 +283,8 @@ function AppointmentCard({
   onConfirmComplete,
   processing,
 }: AppointmentCardProps) {
+  const { language } = useLanguage()
+  const isSi = language === "si"
   const isEditable = appointment.status === "scheduled"
   const showCancelConfirm = confirmCancelId === appointment.id
   const showCompleteConfirm = confirmCompleteId === appointment.id
@@ -366,10 +372,10 @@ function AppointmentCard({
           <button
             type="button"
             onClick={() => onComplete(appointment.id)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-800 hover:bg-green-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-800 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
           >
-            <CheckCircle2 className="h-3.5 w-3.5 text-green-700" aria-hidden />
-            Mark as completed
+            <CheckCircle2 className="h-3.5 w-3.5 text-green-700 dark:text-green-400" aria-hidden />
+            {isSi ? "සම්පූර්ණයි" : "Mark as completed"}
           </button>
           <button
             type="button"
@@ -377,15 +383,15 @@ function AppointmentCard({
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
           >
             <Edit2 className="h-3.5 w-3.5" aria-hidden />
-            Edit details
+            {isSi ? "සංස්කරණය" : "Edit details"}
           </button>
           <button
             type="button"
             onClick={() => onCancel(appointment.id)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#FECDCA] bg-[#FFF1F0] px-3 py-1.5 text-xs font-medium text-[#B91C1C] hover:bg-[#FECDCA]/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#FECDCA] bg-[#FFF1F0] dark:border-red-900/60 dark:bg-red-950/40 px-3 py-1.5 text-xs font-medium text-[#B91C1C] dark:text-red-300 hover:bg-[#FECDCA]/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
           >
             <XCircle className="h-3.5 w-3.5 text-[#E27D72]" aria-hidden />
-            Cancel appointment
+            {isSi ? "අවලංගු කරන්න" : "Cancel appointment"}
           </button>
         </div>
       )}
@@ -659,6 +665,8 @@ function AppointmentForm({
 // Main Page Component
 // ---------------------------------------------------------------------------
 export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
+  const { language } = useLanguage()
+  const isSi = language === "si"
   const [state, dispatch] = useReducer(reducer, { phase: "loading" })
 
   useEffect(() => {
@@ -821,12 +829,13 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
           <div className="flex items-center gap-2">
             <CalendarDays className="h-6 w-6 text-primary" aria-hidden />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Clinic Appointments
+              {isSi ? "MOH සායන හමුවීම්" : "Clinic Appointments"}
             </h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Tracking physical clinic visits for{" "}
-            <strong className="text-foreground">{child.name}</strong> • {formatAge(ageMonths)} old
+            {isSi
+              ? `${child.name} දරුවාගේ සායන සහ වෛද්‍ය හමුවීම් සටහන් • වයස: ${formatAge(ageMonths)}`
+              : `Tracking physical clinic visits for ${child.name} • ${formatAge(ageMonths)} old`}
           </p>
         </div>
         {!showForm && (
@@ -836,7 +845,7 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-opacity cursor-pointer shadow-xs"
           >
             <PlusCircle className="h-4 w-4" aria-hidden />
-            Schedule appointment
+            {isSi ? "නව හමුවීමක් එක් කරන්න" : "Schedule appointment"}
           </button>
         )}
       </div>
@@ -848,19 +857,35 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
       >
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
         <span className="text-muted-foreground">
-          <strong className="text-foreground">Clinic Appointments vs National EPI Milestones:</strong> Clinic visits are scheduled consultations at a healthcare facility (MOH clinic, hospital, or GP). They are tracked separately from national EPI immunization calendar due dates.
+          <strong className="text-foreground">
+            {isSi
+              ? "සායන හමුවීම් සහ ජාතික එන්නත් කාලසටහන (EPI):"
+              : "Clinic Appointments vs National EPI Milestones:"}
+          </strong>{" "}
+          {isSi
+            ? "සායන හමුවීම් යනු සෞඛ්‍ය මධ්‍යස්ථානයක (MOH සායනය, රෝහල හෝ පවුල් වෛද්‍යවරයා) සිදුකරන සෘජු හමුවීම් වේ. ඒවා ජාතික එන්නත් කාලසටහනේ දිනයන්ගෙන් වෙන්ව නිරීක්ෂණය කෙරේ."
+            : "Clinic visits are scheduled consultations at a healthcare facility (MOH clinic, hospital, or GP). They are tracked separately from national EPI immunization calendar due dates."}
         </span>
       </aside>
 
       {/* Reminder Preview Disclaimer (FR-052, BR-07) */}
       <aside
         aria-label="Reminder disclaimer"
-        className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-900"
+        className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 dark:border-amber-900/60 dark:bg-amber-950/40 px-4 py-2.5 text-xs text-amber-900 dark:text-amber-200"
       >
-        <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
+        <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
         <span>
-          <strong>Reminder previews only:</strong> SuwaDaru displays demonstration previews labeled{" "}
-          <span className="font-bold underline">"Not sent"</span>. No real SMS, push, or email notifications are dispatched.
+          <strong>{isSi ? "ආදර්ශන මතක් කිරීම් පමණි:" : "Reminder previews only:"}</strong>{" "}
+          {isSi ? (
+            <>
+              සුවදරු <span className="font-bold underline">"යවන ලද්දක් නොවේ"</span> ලෙස ආදර්ශන මතක් කිරීම් පෙන්වයි. සැබෑ SMS හෝ Push දැනුම්දීම් යවනු නොලැබේ.
+            </>
+          ) : (
+            <>
+              SuwaDaru displays demonstration previews labeled{" "}
+              <span className="font-bold underline">"Not sent"</span>. No real SMS, push, or email notifications are dispatched.
+            </>
+          )}
         </span>
       </aside>
 
@@ -895,7 +920,7 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {t} visits
+            {t === "upcoming" ? (isSi ? "ඉදිරි හමුවීම්" : "upcoming visits") : isSi ? "පසුගිය හමුවීම්" : "past visits"}
             {t === "upcoming" && upcoming.length > 0 && (
               <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
                 {upcoming.length}
@@ -922,11 +947,17 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
             <CalendarDays className="h-10 w-10 text-muted-foreground/30" aria-hidden />
             <div>
               <p className="font-semibold text-sm text-foreground">
-                No {tab} appointments for {child.name}
+                {isSi
+                  ? `${child.name} සඳහා ${tab === "upcoming" ? "ඉදිරි" : "පසුගිය"} සායන හමුවීම් නොමැත`
+                  : `No ${tab} appointments for ${child.name}`}
               </p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm">
                 {tab === "upcoming"
-                  ? "Schedule your child's next clinic consultation, development review, or vaccination visit using the button below."
+                  ? isSi
+                    ? "පහත බොත්තම භාවිතයෙන් ඔබේ දරුවාගේ මීළඟ සායන හෝ වෛද්‍ය හමුවීම සටහන් කරන්න."
+                    : "Schedule your child's next clinic consultation, development review, or vaccination visit using the button below."
+                  : isSi
+                  ? "සම්පූර්ණ කරන ලද හෝ අවලංගු කරන ලද සායන හමුවීම් මෙහි සටහන් වේ."
                   : "Completed or cancelled clinic visits will appear here for your historical records."}
               </p>
             </div>
@@ -937,7 +968,7 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
                 className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-opacity cursor-pointer"
               >
                 <PlusCircle className="h-4 w-4" aria-hidden />
-                Schedule new appointment
+                {isSi ? "නව හමුවීමක් එක් කරන්න" : "Schedule new appointment"}
               </button>
             )}
           </div>

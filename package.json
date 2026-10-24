@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
+    "test:ai": "node --experimental-strip-types --test tests/ai.test.mjs",
     "test": "npx tsx --test tests/*.test.ts",
     "lint": "oxlint",
     "test:auth": "node --test src/services/auth/auth.test.mjs supabase/tests/phase4-auth.test.mjs",
@@ -43,3 +44,4 @@
     "vite": "^8.3.4"
   }
 }
+

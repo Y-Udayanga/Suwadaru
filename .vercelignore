@@ -1,0 +1,6 @@
+.env*
+!.env.example
+docs
+supabase
+tests
+dist

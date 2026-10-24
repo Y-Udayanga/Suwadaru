@@ -11,9 +11,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <BrowserRouter>
-          <ConnectedAuthProvider><TooltipProvider delayDuration={400}>{children}</TooltipProvider></ConnectedAuthProvider>
-        </BrowserRouter>
+      <BrowserRouter>
+        <ConnectedAuthProvider><TooltipProvider delayDuration={400}>{children}</TooltipProvider></ConnectedAuthProvider>
+      </BrowserRouter>
       </LanguageProvider>
     </ThemeProvider>
   )

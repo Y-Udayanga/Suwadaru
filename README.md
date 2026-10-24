@@ -77,3 +77,11 @@ The typeface is Inter, with a system-ui fallback.
 No profiles or health records are seeded. Create an account and add your own child profile. Reference tables stay empty until reviewed source data is published. Nutrition currently saves notes without automated advice. Test fixtures are isolated from application data.
 
 Requirements and the frontend handoff are in `docs/`.
+
+## Streaming AI
+
+The public `/ai` assistant and the child Nutrition page stream educational replies from `/api/chat`. Nutrition notes remain a separate saved-record feature; conversations are held in page memory, not written to health records. Replies support conversation context, Stop, retry, and New chat. Keys stay on the server.
+
+Set `GEMINI_API_KEY` in the server environment. Default model: `gemini-3.5-flash-lite` (verified against the live API). Override with `GEMINI_MODEL`. Optional comma-separated `GEMINI_FALLBACK_MODELS` are tried only for model availability/quota errors before streaming begins. Never use `VITE_GEMINI_API_KEY`.
+
+`npm run dev` and `npm run preview` include the local API. Vercel deploys `api/chat.ts`; `vercel.json` preserves API routes and supports browser deep links. `npm run test:ai` checks validation, fallback, incremental delivery, UTF-8 parsing and incomplete-stream errors. The public educational assistant does not access child records. Add platform abuse limits before operating at scale; provider quotas still apply.

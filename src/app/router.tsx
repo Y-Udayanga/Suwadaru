@@ -6,6 +6,7 @@ import { PublicRoutes } from "@/components/layout/SiteFrame"
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { RegisterPage } from "@/features/auth/RegisterPage"
+import { ProtectedRoute } from "@/features/auth/ProtectedRoute"
 import { AppointmentsPage } from "@/features/appointments/AppointmentsPage"
 import { AddChildPage } from "@/features/children/AddChildPage"
 import { ChildOverviewPage } from "@/features/children/ChildOverviewPage"
@@ -41,7 +42,15 @@ export function AppRouter() {
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
-      <Route element={<AppShell />}>
+
+      {/* Authenticated parent shell guarded by ProtectedRoute (FR-004) */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }
+      >
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="children/new" element={<AddChildPage />} />
         <Route
@@ -68,3 +77,4 @@ export function AppRouter() {
     </Routes>
   )
 }
+

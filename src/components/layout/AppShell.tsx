@@ -104,14 +104,15 @@ function navLinkClass(
     "transition-colors duration-150",
     // Focus ring — always visible, not just on keyboard
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    // Default state
-    "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
-    // Active state — teal fill, white text
-    isActive && "bg-primary text-primary-foreground hover:bg-primary/90",
+    // State-dependent styling
+    isActive
+      ? "bg-primary text-white hover:bg-primary/90 hover:text-white active:text-white focus:text-white"
+      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
     // Collapsed: centre the icon, remove horizontal text padding
     collapsed && "justify-center px-0",
   )
 }
+
 
 // ---------------------------------------------------------------------------
 // NavSection — renders a group of nav items

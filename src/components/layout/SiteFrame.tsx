@@ -20,11 +20,11 @@ const publicLinkClass = ({ isActive }: { isActive: boolean }) =>
     "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium",
     "transition-colors duration-150",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    "hover:bg-accent hover:text-accent-foreground",
     isActive
-      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-      : "text-foreground/80",
+      ? "bg-primary text-white hover:bg-primary/90 hover:text-white active:text-white focus:text-white"
+      : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
   )
+
 
 function PublicHeader() {
   return (

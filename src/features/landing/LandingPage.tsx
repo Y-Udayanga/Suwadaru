@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Link } from "react-router"
 import {
-  Activity,
   ArrowRight,
   BookOpen,
   Bot,
@@ -45,93 +44,11 @@ export function LandingPage() {
         <div className="absolute top-[480px] left-1/4 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-teal-400/10 blur-[100px] rounded-full animate-ambient-1" />
       </div>
 
-      {/* 1. Hero Section with Floating Companion Cards (Panoramic Composition) */}
+      {/* 1. Hero Section */}
       <section
         aria-labelledby="hero-heading"
-        className="relative max-w-7xl mx-auto w-full px-4 pt-4 sm:pt-8"
+        className="relative flex flex-col items-center text-center max-w-4xl mx-auto px-4 gap-6 pt-4 sm:pt-8 z-10"
       >
-        {/* Floating Live Widget 1: Top-Left (EPI Milestone) */}
-        <div
-          aria-hidden="true"
-          className="hidden xl:flex absolute top-12 left-4 z-20 flex-col gap-2 rounded-2xl glass-card p-4 shadow-xl border border-rose-300/60 dark:border-rose-500/30 max-w-xs animate-float-slow backdrop-blur-xl"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 dark:bg-rose-950/60 px-2.5 py-0.5 text-[11px] font-bold text-rose-700 dark:text-rose-300">
-              <span className="size-2 rounded-full bg-rose-600 animate-ping inline-block" />
-              Next Milestone
-            </span>
-            <span className="text-[11px] font-semibold text-muted-foreground">9 Months</span>
-          </div>
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-md">
-              <Syringe className="size-5" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-foreground">MMR 1 Vaccine</div>
-              <div className="text-[11px] text-muted-foreground">Panadura MOH Clinic • Due in 12 days</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Live Widget 2: Bottom-Left (Caregiver Community Trust) */}
-        <div
-          aria-hidden="true"
-          className="hidden xl:flex absolute bottom-12 left-8 z-20 items-center gap-3 rounded-2xl glass-card px-4 py-3 shadow-xl border border-amber-300/60 dark:border-amber-500/30 max-w-xs animate-float-reverse backdrop-blur-xl"
-        >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md">
-            <CheckCircle2 className="size-5" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-foreground">Official CHDR Companion</div>
-            <div className="text-[11px] text-muted-foreground">Aligned with Sri Lanka EPI 2023 Guidelines</div>
-          </div>
-        </div>
-
-        {/* Floating Live Widget 3: Top-Right (WHO Growth Trajectory) */}
-        <div
-          aria-hidden="true"
-          className="hidden xl:flex absolute top-12 right-4 z-20 flex-col gap-2 rounded-2xl glass-card p-4 shadow-xl border border-emerald-300/60 dark:border-emerald-500/30 max-w-xs animate-float-reverse backdrop-blur-xl"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-              <Activity className="size-3 text-emerald-600" />
-              WHO Growth Trajectory
-            </span>
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">+0.4 kg</span>
-          </div>
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
-              <TrendingUp className="size-5" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-foreground">Nethmi • 8.4 kg</div>
-              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Ideal Green Zone (WHO Standard)</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Live Widget 4: Bottom-Right (SuwaDaru AI Tip) */}
-        <div
-          aria-hidden="true"
-          className="hidden xl:flex absolute bottom-12 right-8 z-20 flex-col gap-2 rounded-2xl glass-card p-4 shadow-xl border border-purple-300/60 dark:border-purple-500/30 max-w-xs animate-float-slow backdrop-blur-xl"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 dark:bg-purple-950/60 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 dark:text-purple-300">
-              <Sparkles className="size-3 text-purple-600" />
-              සුවදරු AI Tip
-            </span>
-            <span className="text-[10px] font-mono text-muted-foreground">Sinhala • Tamil • EN</span>
-          </div>
-          <div className="text-xs font-medium text-foreground leading-snug">
-            &ldquo;මාස 8 බබාට රතු කැකුළු බත් සමඟ පරිප්පු සහ වට්ටක්කා පොඩි කර ලබා දෙන්න.&rdquo;
-          </div>
-          <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-            <span>🛡️ Nutrient-dense Sri Lankan recipe</span>
-          </div>
-        </div>
-
-        {/* Center Hero Column */}
-        <div className="relative flex flex-col items-center text-center max-w-3xl mx-auto gap-6 z-10">
           {/* Brand Emblem with Multi-layer Glow & Floating Micro-badges */}
           <div className="relative mx-auto flex items-center justify-center">
             {/* Spinning decorative aura ring */}
@@ -213,7 +130,6 @@ export function LandingPage() {
               EPI 2023 baseline schedule
             </span>
           </div>
-        </div>
       </section>
 
       {/* ── Key Live Stats Ribbon (Fills space with vibrant credibility) ── */}

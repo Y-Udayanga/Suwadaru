@@ -4,19 +4,24 @@
  * Route: /children/:childId/vaccinations
  * Owner: Frontend B (feature/frontend-health)
  *
- * States covered (BRD §8, FR-020–026, T-05–T-07):
- *   loading   — resolving child + schedule
- *   error     — unknown childId (safe 404 state)
- *   upcoming  — schedule list with status badges
- *   entry     — inline form to report a dose as parent_reported
- *   no-data   — empty records (no administered doses yet)
+ * SOURCING & GOVERNANCE:
+ *   - Schedule baseline: Sri Lanka National Immunization Schedule (2023 baseline).
+ *   - Sourced from: https://www.epid.gov.lk/storage/post/pdfs/en_6403b42a75fa4_Doc2.pdf
+ *   - Mandatory label: "For demonstration — verify the latest official EPI schedule before clinical use"
  *
- * Constraints:
- *   - Do NOT modify AppShell, router, shared types, or service contracts.
- *   - BR-02: user-entered completion is parent_reported only; never verified.
- *   - BR-03: overdue shows a contact-clinic suggestion, not a catch-up plan.
- *   - FR-025: reminder preview explicitly labeled "not sent".
- *   - FR-023: schedule source URL and version displayed.
+ * BRD CONSTRAINTS SATISFIED:
+ *   - FR-020: Birthdate-derived timeline using calendar-month arithmetic.
+ *   - FR-021: Distinguish scheduled due date, actual administered date, and clinic appointment.
+ *   - FR-022: Distinct upcoming, due, overdue, and parent-reported unverified statuses.
+ *   - FR-023: Versioned schedule source link and reviewed status banner.
+ *   - FR-024: Interactive report-dose form with non-future validation and parent_reported provenance.
+ *   - FR-025: Reminder preview explicitly labeled "no message sent".
+ *   - FR-026: Month-end and leap-year calendar dates; no custom catch-up regimes.
+ *   - BR-01: Pure calendar-aware date addition.
+ *   - BR-02: User-entered completion is parent_reported only; never verified.
+ *   - BR-03: Missed milestone shows PHM/clinic contact guidance, not catch-up calculation.
+ *   - BR-07: Demo honesty — no fake SMS, no false verification.
+ *   - NFR-05: Accessible table alternative and non-color-dependent statuses.
  */
 
 import { useEffect, useReducer, useRef, useState } from "react"
@@ -29,12 +34,27 @@ import {
   AlertTriangle,
   PlusCircle,
   Info,
+  ExternalLink,
+  ShieldCheck,
+  FileText,
+  Calendar,
+  X,
+  Bell,
+  PhoneCall,
+  ArrowLeft,
+  ChevronRight,
+  ListFilter,
+  Table as TableIcon,
+  LayoutList,
+  Edit2,
+  Check,
 } from "lucide-react"
 import type { ChildFeaturePageProps } from "@/types"
 import type {
   VaccinationMilestone,
   VaccinationRecord,
   VaccinationStatus,
+  ClinicAppointment,
 } from "@/types"
 import type { Child } from "@/types"
 import { AppError } from "@/services/contracts"
@@ -42,17 +62,29 @@ import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { resolveChild, ageInMonths, formatAge } from "../childResolver"
 import { vaccinationService } from "./vaccinationService"
+import { appointmentService } from "../appointments/appointmentService"
 import {
   computeVaccinationStatus,
+  computeScheduleSummary,
   STATUS_LABELS,
-  STATUS_BG,
+  STATUS_BADGE_CLASSES,
+  STATUS_ACCESSIBILITY_DESCRIPTIONS,
+  matchesFilter,
+  type StatusFilterKey,
 } from "./vaccinationStatus"
+import {
+  EPI_SCHEDULE_METADATA,
+  getVaccineDefinition,
+  type VaccineScheduleDefinition,
+} from "./scheduleConfig"
+import { formatCalendarDate, isFutureDate } from "./calendarDate"
 
 // ---------------------------------------------------------------------------
-// Types
+// Page state & actions
 // ---------------------------------------------------------------------------
-type ReportFormState = {
+interface ReportFormState {
   vaccineCode: string
+  vaccineName: string
   administeredOn: string
   error: string | null
   submitting: boolean
@@ -66,18 +98,37 @@ type PageState =
       child: Child
       milestones: VaccinationMilestone[]
       records: VaccinationRecord[]
-      reportForm: ReportFormState | null
+      appointments: ClinicAppointment[]
+      filter: StatusFilterKey
+      viewMode: "timeline" | "table"
+      reportModal: ReportFormState | null
+      detailModal: VaccineScheduleDefinition | null
+      reminderPreviewMilestone: VaccinationMilestone | null
+      successToast: string | null
     }
 
 type Action =
-  | { type: "LOADED"; child: Child; milestones: VaccinationMilestone[]; records: VaccinationRecord[] }
+  | {
+      type: "LOADED"
+      child: Child
+      milestones: VaccinationMilestone[]
+      records: VaccinationRecord[]
+      appointments: ClinicAppointment[]
+    }
   | { type: "ERROR"; message: string }
-  | { type: "OPEN_REPORT"; vaccineCode: string }
+  | { type: "SET_FILTER"; filter: StatusFilterKey }
+  | { type: "SET_VIEW_MODE"; mode: "timeline" | "table" }
+  | { type: "OPEN_REPORT"; vaccineCode: string; vaccineName: string; defaultDate: string }
   | { type: "CLOSE_REPORT" }
-  | { type: "SET_DATE"; date: string }
-  | { type: "SET_FORM_ERROR"; error: string }
-  | { type: "SUBMIT_START" }
-  | { type: "SUBMIT_DONE"; record: VaccinationRecord }
+  | { type: "SET_REPORT_DATE"; date: string }
+  | { type: "SET_REPORT_ERROR"; error: string }
+  | { type: "SUBMIT_REPORT_START" }
+  | { type: "SUBMIT_REPORT_DONE"; record: VaccinationRecord; message: string }
+  | { type: "OPEN_DETAIL"; definition: VaccineScheduleDefinition }
+  | { type: "CLOSE_DETAIL" }
+  | { type: "OPEN_REMINDER"; milestone: VaccinationMilestone }
+  | { type: "CLOSE_REMINDER" }
+  | { type: "DISMISS_TOAST" }
 
 function reducer(state: PageState, action: Action): PageState {
   if (action.type === "LOADED") {
@@ -86,542 +137,1285 @@ function reducer(state: PageState, action: Action): PageState {
       child: action.child,
       milestones: action.milestones,
       records: action.records,
-      reportForm: null,
+      appointments: action.appointments,
+      filter: "all",
+      viewMode: "timeline",
+      reportModal: null,
+      detailModal: null,
+      reminderPreviewMilestone: null,
+      successToast: null,
     }
   }
   if (action.type === "ERROR") return { phase: "error", message: action.message }
   if (state.phase !== "ready") return state
 
   switch (action.type) {
+    case "SET_FILTER":
+      return { ...state, filter: action.filter }
+    case "SET_VIEW_MODE":
+      return { ...state, viewMode: action.mode }
     case "OPEN_REPORT":
       return {
         ...state,
-        reportForm: {
+        reportModal: {
           vaccineCode: action.vaccineCode,
-          administeredOn: new Date().toISOString().slice(0, 10),
+          vaccineName: action.vaccineName,
+          administeredOn: action.defaultDate,
           error: null,
           submitting: false,
         },
       }
     case "CLOSE_REPORT":
-      return { ...state, reportForm: null }
-    case "SET_DATE":
-      return state.reportForm
-        ? { ...state, reportForm: { ...state.reportForm, administeredOn: action.date, error: null } }
+      return { ...state, reportModal: null }
+    case "SET_REPORT_DATE":
+      return state.reportModal
+        ? {
+            ...state,
+            reportModal: {
+              ...state.reportModal,
+              administeredOn: action.date,
+              error: null,
+            },
+          }
         : state
-    case "SET_FORM_ERROR":
-      return state.reportForm
-        ? { ...state, reportForm: { ...state.reportForm, error: action.error, submitting: false } }
+    case "SET_REPORT_ERROR":
+      return state.reportModal
+        ? {
+            ...state,
+            reportModal: {
+              ...state.reportModal,
+              error: action.error,
+              submitting: false,
+            },
+          }
         : state
-    case "SUBMIT_START":
-      return state.reportForm
-        ? { ...state, reportForm: { ...state.reportForm, submitting: true, error: null } }
+    case "SUBMIT_REPORT_START":
+      return state.reportModal
+        ? { ...state, reportModal: { ...state.reportModal, submitting: true, error: null } }
         : state
-    case "SUBMIT_DONE":
+    case "SUBMIT_REPORT_DONE": {
+      const updated = state.records.filter((r) => r.vaccineCode !== action.record.vaccineCode)
       return {
         ...state,
-        records: [...state.records, action.record],
-        reportForm: null,
+        records: [...updated, action.record],
+        reportModal: null,
+        successToast: action.message,
       }
+    }
+    case "OPEN_DETAIL":
+      return { ...state, detailModal: action.definition }
+    case "CLOSE_DETAIL":
+      return { ...state, detailModal: null }
+    case "OPEN_REMINDER":
+      return { ...state, reminderPreviewMilestone: action.milestone }
+    case "CLOSE_REMINDER":
+      return { ...state, reminderPreviewMilestone: null }
+    case "DISMISS_TOAST":
+      return { ...state, successToast: null }
     default:
       return state
   }
 }
 
 // ---------------------------------------------------------------------------
-// Status icon helper
+// Helper: Find linked clinic appointment for milestone
 // ---------------------------------------------------------------------------
-function StatusIcon({ status }: { status: VaccinationStatus }) {
-  const cls = "h-4 w-4 shrink-0"
-  switch (status) {
-    case "completed_unverified":
-    case "completed_verified":
-      return <CheckCircle2 className={cn(cls, "text-[#0F766E]")} aria-hidden />
-    case "overdue":
-      return <AlertTriangle className={cn(cls, "text-[#E27D72]")} aria-hidden />
-    case "due":
-      return <Clock className={cn(cls, "text-amber-600")} aria-hidden />
-    default:
-      return <CalendarDays className={cn(cls, "text-muted-foreground")} aria-hidden />
-  }
+function findLinkedAppointment(
+  milestone: VaccinationMilestone,
+  appointments: ClinicAppointment[],
+): ClinicAppointment | undefined {
+  const code = milestone.vaccineCode.toLowerCase()
+  return appointments.find((a) => {
+    const purpose = (a.purpose ?? "").toLowerCase()
+    return (
+      purpose.includes(code) ||
+      (code.startsWith("penta") && purpose.includes("penta")) ||
+      (code.startsWith("opv") && purpose.includes("opv")) ||
+      (code.startsWith("fipv") && purpose.includes("fipv")) ||
+      (code.startsWith("mmr") && purpose.includes("mmr")) ||
+      (code === "je" && (purpose.includes("je") || purpose.includes("encephalitis"))) ||
+      (code.startsWith("dt") && purpose.includes("dt")) ||
+      (code === "bcg" && purpose.includes("bcg"))
+    )
+  })
 }
 
 // ---------------------------------------------------------------------------
-// Milestone card
+// Accessible Status Badge
 // ---------------------------------------------------------------------------
-type MilestoneCardProps = {
-  milestone: VaccinationMilestone
-  records: VaccinationRecord[]
-  today: string
-  onReport: (vaccineCode: string) => void
-}
-
-function MilestoneCard({ milestone, records, today, onReport }: MilestoneCardProps) {
-  const status = computeVaccinationStatus(milestone, records, today)
-  const record = records.find(
-    (r) => r.vaccineCode === milestone.vaccineCode && r.administeredOn !== null,
-  )
-  const isDone =
-    status === "completed_unverified" || status === "completed_verified"
-
-  const ageLabel =
-    milestone.birthWindow
-      ? "At birth (0–4 weeks)"
-      : milestone.ageMonths !== null
-      ? `${milestone.ageMonths} month${milestone.ageMonths !== 1 ? "s" : ""}`
-      : "—"
+function StatusBadge({ status }: { status: VaccinationStatus }) {
+  const icon = (() => {
+    switch (status) {
+      case "completed_verified":
+        return <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
+      case "completed_unverified":
+        return <CheckCircle2 className="h-3.5 w-3.5 text-teal-600" aria-hidden />
+      case "overdue":
+        return <AlertTriangle className="h-3.5 w-3.5 text-rose-600" aria-hidden />
+      case "due":
+        return <Clock className="h-3.5 w-3.5 text-amber-600" aria-hidden />
+      case "upcoming":
+      default:
+        return <CalendarDays className="h-3.5 w-3.5 text-slate-500" aria-hidden />
+    }
+  })()
 
   return (
-    <article
+    <span
       className={cn(
-        "rounded-xl border bg-card p-4 flex flex-col gap-2 transition-shadow hover:shadow-sm",
-        status === "overdue" && "border-[#FECDCA]",
-        status === "due" && "border-amber-200",
-        isDone && "border-[#A7F3D0] opacity-80",
+        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border shadow-xs",
+        STATUS_BADGE_CLASSES[status],
       )}
+      title={STATUS_ACCESSIBILITY_DESCRIPTIONS[status]}
     >
-      <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
-          <StatusIcon status={status} />
-          <h3 className="font-semibold text-sm leading-snug truncate">
-            {milestone.vaccineName}
-          </h3>
-        </div>
-        <span
-          className={cn(
-            "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium",
-            STATUS_BG[status],
-          )}
-        >
-          {STATUS_LABELS[status]}
-        </span>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <div>
-          <dt className="sr-only">Milestone age</dt>
-          <dd>{ageLabel}</dd>
-        </div>
-        <div>
-          <dt className="sr-only">Scheduled due date</dt>
-          <dd>Due {formatDate(milestone.dueDate)}</dd>
-        </div>
-        {record?.administeredOn && (
-          <div className="col-span-2">
-            <dt className="sr-only">Reported administered date</dt>
-            <dd className="text-[#0F766E]">
-              Reported on {formatDate(record.administeredOn)} —{" "}
-              <span className="italic">parent-reported, not clinically verified</span>
-            </dd>
-          </div>
-        )}
-      </dl>
-
-      {status === "overdue" && (
-        <p className="rounded-lg bg-[#FFF1F0] px-3 py-2 text-xs text-[#B91C1C]">
-          <strong>Overdue:</strong> Please contact your clinic or Public Health
-          Midwife (PHM) to arrange a suitable follow-up appointment.{" "}
-          <em>SuwaDaru does not generate catch-up schedules.</em>
-        </p>
-      )}
-
-      {!isDone && (
-        <button
-          type="button"
-          onClick={() => onReport(milestone.vaccineCode)}
-          className={cn(
-            "mt-1 inline-flex items-center gap-1.5 self-start rounded-lg px-3 py-1.5 text-xs font-medium",
-            "bg-[#E8F7F3] text-[#0F766E] hover:bg-[#d1f0e8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            "transition-colors",
-          )}
-        >
-          <PlusCircle className="h-3.5 w-3.5" aria-hidden />
-          Report administered date
-        </button>
-      )}
-    </article>
+      {icon}
+      <span>{STATUS_LABELS[status]}</span>
+      <span className="sr-only">({STATUS_ACCESSIBILITY_DESCRIPTIONS[status]})</span>
+    </span>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Inline report form
-// ---------------------------------------------------------------------------
-type ReportFormProps = {
-  state: ReportFormState
-  milestoneName: string
-  childId: string
-  today: string
-  onDateChange: (date: string) => void
-  onSubmit: () => void
-  onCancel: () => void
-}
-
-function ReportForm({
-  state,
-  milestoneName,
-  today,
-  onDateChange,
-  onSubmit,
-  onCancel,
-}: ReportFormProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="false"
-      aria-label={`Report administered date for ${milestoneName}`}
-      className="rounded-xl border border-[#A7F3D0] bg-[#E8F7F3] p-4 flex flex-col gap-3"
-    >
-      <p className="text-sm font-medium text-[#0F766E]">
-        Report administered date for <strong>{milestoneName}</strong>
-      </p>
-      <p className="text-xs text-muted-foreground">
-        This records the date a caregiver reports the vaccine was given. It is{" "}
-        <strong>not clinically verified</strong> and will not be treated as an
-        official health-worker record.
-      </p>
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="administered-date"
-          className="text-xs font-medium text-foreground"
-        >
-          Date administered
-        </label>
-        <input
-          ref={inputRef}
-          id="administered-date"
-          type="date"
-          max={today}
-          value={state.administeredOn}
-          onChange={(e) => onDateChange(e.target.value)}
-          disabled={state.submitting}
-          className={cn(
-            "rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            state.error && "border-[#E27D72]",
-          )}
-          aria-describedby={state.error ? "report-error" : undefined}
-          aria-invalid={!!state.error}
-        />
-        {state.error && (
-          <p id="report-error" className="text-xs text-[#E27D72]" role="alert">
-            {state.error}
-          </p>
-        )}
-      </div>
-      <div className="flex gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={state.submitting}
-          className={cn(
-            "rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground",
-            "hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            "disabled:opacity-50 transition-opacity",
-          )}
-        >
-          {state.submitting ? "Saving…" : "Save record"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={state.submitting}
-          className={cn(
-            "rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium",
-            "hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            "disabled:opacity-50 transition-colors",
-          )}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-function formatDate(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(iso + "T00:00:00"))
-  } catch {
-    return iso
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Main page component
+// Main Vaccinations Page Component
 // ---------------------------------------------------------------------------
 export function VaccinationsPage({ childId }: ChildFeaturePageProps) {
   const [state, dispatch] = useReducer(reducer, { phase: "loading" })
   const [today] = useState(() => new Date().toISOString().slice(0, 10))
+  const reportDateInputRef = useRef<HTMLInputElement>(null)
 
-  // Load child + schedule + records on mount / childId change.
+  // Load child, schedule, records, and appointments on mount / childId change
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const [child, milestones, records] = await Promise.all([
+        const [child, milestones, records, appointments] = await Promise.all([
           resolveChild(childId),
           vaccinationService.getSchedule(childId),
           vaccinationService.getRecords(childId),
+          appointmentService.list(childId),
         ])
-        if (!cancelled) dispatch({ type: "LOADED", child, milestones, records })
+        if (!cancelled) {
+          dispatch({
+            type: "LOADED",
+            child,
+            milestones,
+            records,
+            appointments,
+          })
+        }
       } catch (err) {
         if (!cancelled) {
-          const message =
+          const msg =
             err instanceof AppError
               ? err.message
-              : "Unable to load vaccination data. Please try again."
-          dispatch({ type: "ERROR", message })
+              : "Unable to load vaccination records. Please try again."
+          dispatch({ type: "ERROR", message: msg })
         }
       }
     }
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [childId])
 
-  // ── Loading ──────────────────────────────────────────────────────────────
+  const isReportModalOpen = state.phase === "ready" && Boolean(state.reportModal)
+
+  // Focus date input when report modal opens
+  useEffect(() => {
+    if (isReportModalOpen) {
+      setTimeout(() => reportDateInputRef.current?.focus(), 50)
+    }
+  }, [isReportModalOpen])
+
+  // ── Loading state ────────────────────────────────────────────────────────
   if (state.phase === "loading") {
     return (
-      <div className="flex max-w-2xl flex-col gap-4" aria-busy="true">
-        <div className="h-8 w-48 rounded-lg bg-muted animate-pulse" />
-        <div className="h-4 w-32 rounded-lg bg-muted animate-pulse" />
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="h-28 rounded-xl bg-muted animate-pulse" />
-        ))}
+      <div
+        className="flex min-w-0 flex-col gap-6 max-w-4xl animate-pulse"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="h-8 w-64 bg-muted rounded-md" />
+        <div className="h-24 w-full bg-muted rounded-xl" />
+        <div className="h-32 w-full bg-muted rounded-xl" />
+        <div className="space-y-4">
+          <div className="h-28 w-full bg-muted rounded-xl" />
+          <div className="h-28 w-full bg-muted rounded-xl" />
+          <div className="h-28 w-full bg-muted rounded-xl" />
+        </div>
+        <span className="sr-only">Loading immunization schedule…</span>
       </div>
     )
   }
 
-  // ── Error (invalid childId → safe state, BR-08, T-05) ───────────────────
+  // ── Error state (e.g., unknown child ID — BR-08, T-05) ───────────────────
   if (state.phase === "error") {
     return (
-      <div className="flex max-w-2xl flex-col gap-4">
-        <div className="rounded-xl border border-[#FECDCA] bg-[#FFF1F0] p-5 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-[#E27D72]" aria-hidden />
-            <h1 className="text-lg font-semibold">Child not found</h1>
+      <div
+        className="flex min-w-0 flex-col gap-4 max-w-lg rounded-xl border border-rose-200 bg-rose-50/50 p-6 dark:border-rose-900/50 dark:bg-rose-950/20"
+        role="alert"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300">
+            <AlertTriangle className="h-5 w-5" aria-hidden />
           </div>
-          <p className="text-sm text-muted-foreground">{state.message}</p>
+          <div>
+            <h2 className="text-base font-semibold text-rose-900 dark:text-rose-200">
+              Immunization Records Unavailable
+            </h2>
+            <p className="text-sm text-rose-700 dark:text-rose-300">{state.message}</p>
+          </div>
+        </div>
+        <div className="flex gap-3 pt-2">
           <Link
             to={routes.dashboard}
-            className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
           >
-            Go to Dashboard
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Return to Dashboard
           </Link>
         </div>
       </div>
     )
   }
 
-  // ── Ready ────────────────────────────────────────────────────────────────
-  const { child, milestones, records, reportForm } = state
-  const ageMonths = ageInMonths(child.dateOfBirth)
+  // ── Ready state ──────────────────────────────────────────────────────────
+  const {
+    child,
+    milestones,
+    records,
+    appointments,
+    filter,
+    viewMode,
+    reportModal,
+    detailModal,
+    reminderPreviewMilestone,
+    successToast,
+  } = state
 
-  const reportingMilestone = reportForm
-    ? milestones.find((m) => m.vaccineCode === reportForm.vaccineCode)
-    : null
+  const childAgeMonths = ageInMonths(child.dateOfBirth, today)
+  const summary = computeScheduleSummary(milestones, records, today)
 
-  // Sort: overdue first, then due, then upcoming, then completed.
-  const sortOrder: Record<VaccinationStatus, number> = {
-    overdue: 0,
-    due: 1,
-    upcoming: 2,
-    completed_unverified: 3,
-    completed_verified: 4,
-  }
-  const sortedMilestones = [...milestones].sort((a, b) => {
-    const sa = computeVaccinationStatus(a, records, today)
-    const sb = computeVaccinationStatus(b, records, today)
-    if (sortOrder[sa] !== sortOrder[sb]) return sortOrder[sa] - sortOrder[sb]
-    return a.dueDate.localeCompare(b.dueDate)
+  // Filtered milestones
+  const filteredMilestones = milestones.filter((m) => {
+    const status = computeVaccinationStatus(m, records, today)
+    return matchesFilter(status, filter)
   })
 
-  // Reminder preview (FR-025).
-  const nextDue = sortedMilestones.find((m) => {
-    const s = computeVaccinationStatus(m, records, today)
-    return s === "due" || s === "overdue"
-  })
+  // Group milestones by age milestone label for longitudinal timeline
+  const groupedMilestones = filteredMilestones.reduce<
+    Record<string, { label: string; ageMonths: number | null; items: VaccinationMilestone[] }>
+  >((acc, m) => {
+    const def = getVaccineDefinition(m.vaccineCode)
+    const label = def?.ageMilestoneLabel || (m.birthWindow ? "At Birth" : `${m.ageMonths} Months`)
+    const key = m.birthWindow ? "0" : String(m.ageMonths ?? 999)
+    if (!acc[key]) {
+      acc[key] = { label, ageMonths: m.ageMonths, items: [] }
+    }
+    acc[key].items.push(m)
+    return acc
+  }, {})
 
-  async function handleSubmitReport() {
-    if (!reportForm) return
-    if (!reportForm.administeredOn) {
-      dispatch({ type: "SET_FORM_ERROR", error: "Please enter the date." })
+  // Handle report dose form submission
+  async function handleReportSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!reportModal || reportModal.submitting) return
+
+    const { vaccineCode, vaccineName, administeredOn } = reportModal
+    if (!administeredOn || administeredOn.trim() === "") {
+      dispatch({ type: "SET_REPORT_ERROR", error: "Please provide an administered date." })
       return
     }
-    if (reportForm.administeredOn > today) {
-      dispatch({ type: "SET_FORM_ERROR", error: "Date cannot be in the future." })
+
+    if (isFutureDate(administeredOn, today)) {
+      dispatch({
+        type: "SET_REPORT_ERROR",
+        error: "Administered date may not be in the future (BR-01, FR-026).",
+      })
       return
     }
-    dispatch({ type: "SUBMIT_START" })
+
+    if (administeredOn < child.dateOfBirth) {
+      dispatch({
+        type: "SET_REPORT_ERROR",
+        error: `Administered date cannot be before child's date of birth (${formatCalendarDate(child.dateOfBirth)}).`,
+      })
+      return
+    }
+
+    dispatch({ type: "SUBMIT_REPORT_START" })
     try {
       const record = await vaccinationService.addReportedDose({
-        childId,
-        vaccineCode: reportForm.vaccineCode,
-        administeredOn: reportForm.administeredOn,
+        childId: child.id,
+        vaccineCode,
+        administeredOn,
       })
-      dispatch({ type: "SUBMIT_DONE", record })
+      dispatch({
+        type: "SUBMIT_REPORT_DONE",
+        record,
+        message: `${vaccineName} recorded as parent-reported dose (${formatCalendarDate(administeredOn)}). Marked unverified.`,
+      })
     } catch (err) {
       const msg =
-        err instanceof AppError ? err.message : "Unable to save record."
-      dispatch({ type: "SET_FORM_ERROR", error: msg })
+        err instanceof AppError
+          ? err.message
+          : "Unable to save dose record. Please try again."
+      dispatch({ type: "SET_REPORT_ERROR", error: msg })
     }
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <Syringe className="h-5 w-5 text-primary" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Vaccinations — {child.name}
-          </h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {formatAge(ageMonths)} old · Birthdate-derived schedule below
-        </p>
-      </div>
-
-      {/* Source banner */}
+    <div className="flex min-w-0 flex-col gap-6 max-w-4xl pb-16">
+      {/* ── Official EPI Schedule Baseline & Reviewed Status Banner (FR-023) ── */}
       <aside
-        aria-label="Schedule source information"
-        className="flex items-start gap-2 rounded-xl border border-border bg-[#E8F7F3] px-4 py-3 text-xs text-muted-foreground"
+        className="rounded-xl border border-teal-200 bg-teal-50/70 p-4 text-teal-900 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-xs"
+        aria-label="Official Schedule Baseline Notice"
       >
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <span>
-          Schedule version:{" "}
-          <strong className="text-foreground">
-            LK-EPI-2023-baseline (research reference only)
-          </strong>
-          . Dates are calculated from {child.name}'s date of birth using
-          calendar-month arithmetic.{" "}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white mt-0.5">
+              <FileText className="h-4 w-4" aria-hidden />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-sm tracking-tight text-teal-950 dark:text-teal-50">
+                  {EPI_SCHEDULE_METADATA.title}
+                </span>
+                <span className="rounded-md bg-teal-100 dark:bg-teal-900/80 px-2 py-0.5 text-xs font-mono font-medium text-teal-800 dark:text-teal-200">
+                  v{EPI_SCHEDULE_METADATA.version}
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed text-teal-800 dark:text-teal-200 font-medium">
+                ⚠️ {EPI_SCHEDULE_METADATA.mandatoryDisclaimer}
+              </p>
+              <p className="text-xs text-teal-700/80 dark:text-teal-300/80">
+                Attribution: {EPI_SCHEDULE_METADATA.sourceAttribution} · Baseline effective: {EPI_SCHEDULE_METADATA.effectiveYear}
+              </p>
+            </div>
+          </div>
           <a
-            href="https://www.epid.gov.lk/storage/post/pdfs/en_6403b42a75fa4_Doc2.pdf"
+            href={EPI_SCHEDULE_METADATA.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary underline underline-offset-2"
+            className="inline-flex items-center gap-1.5 self-start sm:self-center shrink-0 rounded-lg border border-teal-300 dark:border-teal-700 bg-white/80 dark:bg-teal-900/60 px-3 py-1.5 text-xs font-medium text-teal-900 dark:text-teal-100 hover:bg-white dark:hover:bg-teal-900 transition-colors shadow-2xs"
           >
-            Source PDF ↗
+            <span>Official Schedule PDF</span>
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           </a>
-          . Always verify the current effective circular with your PHM or clinic
-          before making decisions.
-        </span>
+        </div>
       </aside>
 
-      {/* Reminder preview (FR-025, BR-07) */}
-      {nextDue && (
-        <aside
-          aria-label="Upcoming reminder preview"
-          className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs"
-        >
-          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden />
-          <span className="text-amber-800">
-            <strong>Reminder preview (not sent):</strong> {child.name} has{" "}
-            <strong>{nextDue.vaccineName}</strong> due on{" "}
-            {formatDate(nextDue.dueDate)}. Contact your clinic to schedule.
-            SuwaDaru does not send SMS or push notifications.
-          </span>
-        </aside>
-      )}
-
-      {/* Inline report form */}
-      {reportForm && reportingMilestone && (
-        <ReportForm
-          state={reportForm}
-          milestoneName={reportingMilestone.vaccineName}
-          childId={childId}
-          today={today}
-          onDateChange={(date) => dispatch({ type: "SET_DATE", date })}
-          onSubmit={handleSubmitReport}
-          onCancel={() => dispatch({ type: "CLOSE_REPORT" })}
-        />
-      )}
-
-      {/* Milestone list */}
-      <section aria-label="Vaccine milestones">
-        <h2 className="mb-3 text-base font-semibold">Schedule milestones</h2>
-        {milestones.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground text-sm">
-            <Syringe className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" aria-hidden />
-            <p>No schedule available for this child.</p>
+      {/* ── Page Header & Child Context ── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-primary font-medium text-sm mb-1">
+              <Syringe className="h-4 w-4" aria-hidden />
+              <span>Pediatric Immunization Tracker</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Vaccination Timeline
+            </h1>
           </div>
-        ) : (
-          <ul className="flex flex-col gap-3 list-none p-0 m-0">
-            {sortedMilestones.map((milestone) => (
-              <li key={milestone.id}>
-                <MilestoneCard
-                  milestone={milestone}
-                  records={records}
-                  today={today}
-                  onReport={(code) => dispatch({ type: "OPEN_REPORT", vaccineCode: code })}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+          <Link
+            to={routes.child(child.id)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors self-start sm:self-auto"
+          >
+            <span>Back to {child.name}&apos;s profile</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {/* Child Context Card */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 font-bold text-lg">
+              {child.name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-foreground">{child.name}</h2>
+                <span className="capitalize text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                  {child.sex}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Born: <span className="font-medium text-foreground">{formatCalendarDate(child.dateOfBirth)}</span> · Current age: <span className="font-medium text-foreground">{formatAge(childAgeMonths)}</span> ({childAgeMonths} completed months)
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
+            <span>Clinic: <strong>{child.clinicName || "Colombo MOH Area Clinic"}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Success Toast Alert ── */}
+      {successToast && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-teal-300 bg-teal-50 p-3 text-teal-900 dark:border-teal-800 dark:bg-teal-950/80 dark:text-teal-100 text-sm animate-in fade-in"
+          role="status"
+        >
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-teal-600 shrink-0" aria-hidden />
+            <span>{successToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "DISMISS_TOAST" })}
+            className="text-teal-700 hover:text-teal-900 p-1"
+            aria-label="Dismiss toast"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Next Milestone Hero & Summary Card ── */}
+      {summary.nextMilestone && (
+        <section
+          className={cn(
+            "rounded-xl border p-5 shadow-xs transition-colors",
+            summary.nextMilestoneStatus === "overdue"
+              ? "border-rose-200 bg-rose-50/40 dark:border-rose-900/40 dark:bg-rose-950/20"
+              : summary.nextMilestoneStatus === "due"
+              ? "border-amber-200 bg-amber-50/40 dark:border-amber-900/40 dark:bg-amber-950/20"
+              : "border-teal-200 bg-teal-50/30 dark:border-teal-900/40 dark:bg-teal-950/20",
+          )}
+          aria-labelledby="next-milestone-heading"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" id="next-milestone-heading">
+                  Next Scheduled Milestone
+                </span>
+                <StatusBadge status={summary.nextMilestoneStatus || "upcoming"} />
+              </div>
+              <h3 className="text-xl font-bold tracking-tight text-foreground">
+                {summary.nextMilestone.vaccineName}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Scheduled for: <strong className="text-foreground">{formatCalendarDate(summary.nextMilestone.dueDate)}</strong>
+                {summary.nextMilestone.birthWindow ? " (at birth)" : ` (at ${summary.nextMilestone.ageMonths} completed months)`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch({
+                    type: "OPEN_REPORT",
+                    vaccineCode: summary.nextMilestone!.vaccineCode,
+                    vaccineName: summary.nextMilestone!.vaccineName,
+                    defaultDate: today,
+                  })
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
+              >
+                <PlusCircle className="h-4 w-4" aria-hidden />
+                <span>Report Administered Dose</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const def = getVaccineDefinition(summary.nextMilestone!.vaccineCode)
+                  if (def) dispatch({ type: "OPEN_DETAIL", definition: def })
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <Info className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                <span>Guidance</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Overdue alert notice (BR-03) */}
+          {summary.nextMilestoneStatus === "overdue" && (
+            <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-rose-100/80 dark:bg-rose-900/40 p-3 text-xs text-rose-900 dark:text-rose-100 border border-rose-200 dark:border-rose-800">
+              <PhoneCall className="h-4 w-4 shrink-0 text-rose-700 dark:text-rose-300 mt-0.5" aria-hidden />
+              <div>
+                <strong>Overdue Guidance (BR-03):</strong> This milestone is past its national schedule date. Please contact your Public Health Midwife (PHM) or MOH clinic for professional catch-up planning. Do not calculate a catch-up interval yourself.
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Reported Progress Summary (BR-02, BR-07, FR-022) ── */}
+      <section
+        className="rounded-xl border bg-card p-5 shadow-xs space-y-3"
+        aria-labelledby="progress-heading"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 id="progress-heading" className="text-sm font-semibold text-foreground">
+              Immunization Timeline Progress
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {summary.completed} of {summary.total} baseline milestone doses reported ({summary.progressPercentage}%)
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1 text-teal-700 dark:text-teal-400 font-medium">
+              <span className="h-2 w-2 rounded-full bg-teal-600" />
+              {summary.completed} Reported
+            </span>
+            <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-medium">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              {summary.due} Due
+            </span>
+            <span className="flex items-center gap-1 text-rose-700 dark:text-rose-400 font-medium">
+              <span className="h-2 w-2 rounded-full bg-rose-500" />
+              {summary.overdue} Overdue
+            </span>
+            <span className="flex items-center gap-1 text-slate-500 font-medium">
+              <span className="h-2 w-2 rounded-full bg-slate-400" />
+              {summary.upcoming} Upcoming
+            </span>
+          </div>
+        </div>
+
+        {/* Visual Progress Bar */}
+        <div
+          className="h-2.5 w-full rounded-full bg-muted overflow-hidden"
+          role="progressbar"
+          aria-valuenow={summary.progressPercentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Immunization progress: ${summary.progressPercentage}% recorded`}
+        >
+          <div
+            className="h-full bg-teal-600 transition-all duration-500 rounded-full"
+            style={{ width: `${summary.progressPercentage}%` }}
+          />
+        </div>
+
+        {/* Explanatory Provenance Disclaimer (BR-02, BR-07) */}
+        <p className="text-xs text-muted-foreground/90 italic">
+          * Based strictly on parent-reported and demonstration records. This progress meter does not imply clinical immunity or official healthcare worker verification.
+        </p>
       </section>
 
-      {/* Accessible tabular alternative (NFR-05) */}
-      <details className="mt-2">
-        <summary className="cursor-pointer text-sm text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded">
-          View as table (accessible alternative)
-        </summary>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[500px] border-collapse text-xs">
-            <caption className="sr-only">
-              Vaccination schedule for {child.name}
-            </caption>
-            <thead>
-              <tr className="border-b border-border bg-muted">
-                <th scope="col" className="px-3 py-2 text-left font-semibold">Vaccine</th>
-                <th scope="col" className="px-3 py-2 text-left font-semibold">Age</th>
-                <th scope="col" className="px-3 py-2 text-left font-semibold">Due date</th>
-                <th scope="col" className="px-3 py-2 text-left font-semibold">Status</th>
-                <th scope="col" className="px-3 py-2 text-left font-semibold">Reported date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedMilestones.map((m) => {
-                const status = computeVaccinationStatus(m, records, today)
-                const rec = records.find(
-                  (r) => r.vaccineCode === m.vaccineCode && r.administeredOn,
-                )
-                return (
-                  <tr key={m.id} className="border-b border-border">
-                    <td className="px-3 py-2">{m.vaccineName}</td>
-                    <td className="px-3 py-2">
-                      {m.birthWindow ? "At birth" : `${m.ageMonths}m`}
-                    </td>
-                    <td className="px-3 py-2">{formatDate(m.dueDate)}</td>
-                    <td className="px-3 py-2">{STATUS_LABELS[status]}</td>
-                    <td className="px-3 py-2">
-                      {rec?.administeredOn ? formatDate(rec.administeredOn) : "—"}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      {/* ── Filter Chips and View Switcher ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+        {/* Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" role="group" aria-label="Filter vaccines by status">
+          <span className="text-xs text-muted-foreground mr-1 flex items-center gap-1">
+            <ListFilter className="h-3.5 w-3.5" aria-hidden />
+            Filter:
+          </span>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_FILTER", filter: "all" })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shadow-2xs whitespace-nowrap",
+              filter === "all"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={filter === "all"}
+          >
+            All ({summary.total})
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_FILTER", filter: "due_overdue" })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shadow-2xs whitespace-nowrap",
+              filter === "due_overdue"
+                ? "bg-amber-600 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={filter === "due_overdue"}
+          >
+            Due & Overdue ({summary.due + summary.overdue})
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_FILTER", filter: "reported" })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shadow-2xs whitespace-nowrap",
+              filter === "reported"
+                ? "bg-teal-700 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={filter === "reported"}
+          >
+            Reported ({summary.completed})
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_FILTER", filter: "upcoming" })}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shadow-2xs whitespace-nowrap",
+              filter === "upcoming"
+                ? "bg-slate-700 text-white"
+                : "bg-muted text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={filter === "upcoming"}
+          >
+            Upcoming ({summary.upcoming})
+          </button>
         </div>
-      </details>
 
-      {/* Clinical disclaimer */}
-      <footer className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-        <strong>Fictional demonstration only.</strong> Records entered here are
-        parent-reported and are not clinically verified. The schedule shown is a
-        research baseline and may not reflect the current effective Sri Lanka
-        EPI circular. Always consult your PHM or doctor.
-      </footer>
+        {/* View Mode Switcher (Timeline vs Table - NFR-05) */}
+        <div className="flex items-center gap-1 self-end sm:self-auto rounded-lg border bg-muted/40 p-1">
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_VIEW_MODE", mode: "timeline" })}
+            className={cn(
+              "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              viewMode === "timeline"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-label="Timeline view"
+            aria-pressed={viewMode === "timeline"}
+          >
+            <LayoutList className="h-3.5 w-3.5" aria-hidden />
+            <span>Timeline</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_VIEW_MODE", mode: "table" })}
+            className={cn(
+              "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              viewMode === "table"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-label="Table view"
+            aria-pressed={viewMode === "table"}
+          >
+            <TableIcon className="h-3.5 w-3.5" aria-hidden />
+            <span>Accessible Table</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Empty Filter State ── */}
+      {filteredMilestones.length === 0 && (
+        <div className="rounded-xl border border-dashed p-10 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">
+            No vaccines found matching the selected filter ({filter}).
+          </p>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "SET_FILTER", filter: "all" })}
+            className="text-xs text-primary font-semibold underline underline-offset-4"
+          >
+            Clear filter and show all vaccines
+          </button>
+        </div>
+      )}
+
+      {/* ── Longitudinal Timeline View ── */}
+      {viewMode === "timeline" && filteredMilestones.length > 0 && (
+        <div className="space-y-8 relative before:absolute before:inset-0 before:left-4 sm:before:left-5 before:w-0.5 before:bg-muted-foreground/20">
+          {Object.entries(groupedMilestones).map(([key, group]) => (
+            <div key={key} className="relative pl-10 sm:pl-12 space-y-4">
+              {/* Group milestone header marker */}
+              <div className="flex items-center gap-3 -ml-10 sm:-ml-12">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full border-2 border-background bg-teal-600 text-white font-bold text-xs shadow-xs z-10">
+                  <Calendar className="h-4 w-4" aria-hidden />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">
+                    {group.label}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {group.ageMonths === null
+                      ? "Administered within 4 weeks of birth"
+                      : `Recommended milestone at ${group.ageMonths} completed calendar months`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Milestone Cards for this age group */}
+              <div className="grid gap-3 sm:grid-cols-1">
+                {group.items.map((milestone) => {
+                  const status = computeVaccinationStatus(milestone, records, today)
+                  const record = records.find(
+                    (r) => r.vaccineCode === milestone.vaccineCode && r.administeredOn !== null,
+                  )
+                  const linkedAppt = findLinkedAppointment(milestone, appointments)
+                  const def = getVaccineDefinition(milestone.vaccineCode)
+
+                  return (
+                    <article
+                      key={milestone.id}
+                      className={cn(
+                        "rounded-xl border bg-card p-4 sm:p-5 shadow-xs transition-shadow hover:shadow-md space-y-4",
+                        status === "overdue" && "border-rose-200 dark:border-rose-900/40",
+                        status === "due" && "border-amber-200 dark:border-amber-900/40",
+                      )}
+                    >
+                      {/* Card Header: Title & Badges */}
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-base font-bold text-foreground tracking-tight">
+                              {milestone.vaccineName}
+                            </h4>
+                            <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">
+                              {milestone.vaccineCode}
+                            </span>
+                            {def?.doseNumber && (
+                              <span className="text-xs text-muted-foreground">
+                                ({def.doseNumber})
+                              </span>
+                            )}
+                          </div>
+                          {def && (
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              Protects against: <strong className="text-foreground">{def.targetDiseases.join(", ")}</strong>
+                            </p>
+                          )}
+                        </div>
+                        <div className="shrink-0">
+                          <StatusBadge status={status} />
+                        </div>
+                      </div>
+
+                      {/* ── FR-021: Separate fields for Scheduled Due Date, Administered Date, Clinic Appointment ── */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-lg bg-muted/30 p-3 border border-muted/50 text-xs">
+                        {/* 1. National Scheduled Due Date */}
+                        <div className="space-y-1">
+                          <span className="text-muted-foreground block font-medium">
+                            1. National Due Date
+                          </span>
+                          <span className="font-semibold text-foreground flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden />
+                            {formatCalendarDate(milestone.dueDate)}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground/80 block">
+                            EPI baseline calculation (BR-01)
+                          </span>
+                        </div>
+
+                        {/* 2. Actual Administered Date */}
+                        <div className="space-y-1">
+                          <span className="text-muted-foreground block font-medium">
+                            2. Administered Date
+                          </span>
+                          {record ? (
+                            <div>
+                              <span className="font-semibold text-teal-800 dark:text-teal-200 flex items-center gap-1">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-teal-600 shrink-0" aria-hidden />
+                                {formatCalendarDate(record.administeredOn ?? "")}
+                              </span>
+                              <span className="text-[11px] text-teal-700 dark:text-teal-300 block">
+                                Sourced: {record.source === "demo" ? "Sample demo (unverified)" : "parent_reported (unverified)"}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground italic flex items-center gap-1">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" aria-hidden />
+                              Not yet administered
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 3. Linked Clinic Appointment */}
+                        <div className="space-y-1">
+                          <span className="text-muted-foreground block font-medium">
+                            3. Clinic Appointment
+                          </span>
+                          {linkedAppt ? (
+                            <div>
+                              <span className="font-semibold text-foreground block">
+                                {formatCalendarDate(linkedAppt.scheduledAt.slice(0, 10))}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground block truncate" title={linkedAppt.clinicName}>
+                                {linkedAppt.clinicName} ({linkedAppt.status})
+                              </span>
+                            </div>
+                          ) : (
+                            <Link
+                              to={routes.appointments(child.id)}
+                              className="text-primary hover:underline flex items-center gap-1 text-[11px]"
+                            >
+                              <span>Book clinic visit</span>
+                              <ChevronRight className="h-3 w-3" />
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Overdue Guidance Note (BR-03) */}
+                      {status === "overdue" && (
+                        <div className="rounded-lg bg-rose-50 border border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50 p-3 text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" aria-hidden />
+                          <p>
+                            <strong>Missed / Overdue:</strong> Contact your Public Health Midwife (PHM) or local MOH clinic for evaluation and an authorized vaccination plan. Custom catch-up calculation is not provided (BR-03).
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Card Actions: Report Dose, Guidance Details, Reminder Preview */}
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t flex-wrap">
+                        <div className="flex items-center gap-2">
+                          {record ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                dispatch({
+                                  type: "OPEN_REPORT",
+                                  vaccineCode: milestone.vaccineCode,
+                                  vaccineName: milestone.vaccineName,
+                                  defaultDate: record.administeredOn ?? today,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Edit2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                              <span>Update Date</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                dispatch({
+                                  type: "OPEN_REPORT",
+                                  vaccineCode: milestone.vaccineCode,
+                                  vaccineName: milestone.vaccineName,
+                                  defaultDate: today,
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
+                            >
+                              <PlusCircle className="h-3.5 w-3.5" aria-hidden />
+                              <span>Report Dose</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (def) dispatch({ type: "OPEN_DETAIL", definition: def })
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <Info className="h-3.5 w-3.5" aria-hidden />
+                            <span>Vaccine Details</span>
+                          </button>
+                        </div>
+
+                        {/* Reminder Preview Action (FR-025) */}
+                        <button
+                          type="button"
+                          onClick={() => dispatch({ type: "OPEN_REMINDER", milestone })}
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground py-1 px-1.5"
+                          title="Preview sample SMS/push notification"
+                        >
+                          <Bell className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                          <span>Preview Reminder</span>
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Accessible Table View (NFR-05) ── */}
+      {viewMode === "table" && filteredMilestones.length > 0 && (
+        <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <caption className="sr-only">
+                Complete Immunization Schedule for {child.name} with National Due Dates, Administered Dates, and Statuses
+              </caption>
+              <thead className="bg-muted/70 text-muted-foreground border-b uppercase tracking-wider text-[11px] font-semibold">
+                <tr>
+                  <th scope="col" className="p-3">Vaccine & Code</th>
+                  <th scope="col" className="p-3">Milestone Age</th>
+                  <th scope="col" className="p-3">1. National Due Date</th>
+                  <th scope="col" className="p-3">2. Administered Date</th>
+                  <th scope="col" className="p-3">3. Linked Clinic Visit</th>
+                  <th scope="col" className="p-3">Status</th>
+                  <th scope="col" className="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredMilestones.map((m) => {
+                  const status = computeVaccinationStatus(m, records, today)
+                  const record = records.find((r) => r.vaccineCode === m.vaccineCode && r.administeredOn !== null)
+                  const linkedAppt = findLinkedAppointment(m, appointments)
+                  const def = getVaccineDefinition(m.vaccineCode)
+
+                  return (
+                    <tr key={m.id} className="hover:bg-muted/30 transition-colors">
+                      <th scope="row" className="p-3 font-semibold text-foreground">
+                        <div>{m.vaccineName}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono font-normal">{m.vaccineCode}</div>
+                      </th>
+                      <td className="p-3 text-muted-foreground">
+                        {def?.ageMilestoneLabel || (m.birthWindow ? "At Birth" : `${m.ageMonths} mos`)}
+                      </td>
+                      <td className="p-3 font-medium text-foreground">
+                        {formatCalendarDate(m.dueDate)}
+                      </td>
+                      <td className="p-3">
+                        {record ? (
+                          <div>
+                            <span className="font-semibold text-teal-800 dark:text-teal-200">
+                              {formatCalendarDate(record.administeredOn ?? "")}
+                            </span>
+                            <span className="text-[10px] block text-muted-foreground">
+                              (parent_reported unverified)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic">None recorded</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {linkedAppt ? (
+                          <div>
+                            <span>{formatCalendarDate(linkedAppt.scheduledAt.slice(0, 10))}</span>
+                            <span className="block text-[10px] truncate max-w-[120px]">{linkedAppt.clinicName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/60">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <StatusBadge status={status} />
+                      </td>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              dispatch({
+                                type: "OPEN_REPORT",
+                                vaccineCode: m.vaccineCode,
+                                vaccineName: m.vaccineName,
+                                defaultDate: record?.administeredOn || today,
+                              })
+                            }
+                            className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted"
+                          >
+                            {record ? "Edit" : "Report"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (def) dispatch({ type: "OPEN_DETAIL", definition: def })
+                            }}
+                            className="rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+                          >
+                            Details
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Report Dose Dialog Modal (FR-024, BR-02) ── */}
+      {reportModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-modal-title"
+        >
+          <div className="relative w-full max-w-md rounded-xl border bg-background p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 id="report-modal-title" className="text-lg font-bold text-foreground">
+                  Record Administered Dose
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Reporting dose for <strong className="text-foreground">{child.name}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "CLOSE_REPORT" })}
+                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                aria-label="Close dialog"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                <span className="text-xs text-muted-foreground block font-medium">Vaccine</span>
+                <span className="text-sm font-semibold text-foreground block">
+                  {reportModal.vaccineName} ({reportModal.vaccineCode})
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="administeredOnInput" className="text-xs font-semibold text-foreground">
+                  Date Administered <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  id="administeredOnInput"
+                  ref={reportDateInputRef}
+                  type="date"
+                  value={reportModal.administeredOn}
+                  max={today}
+                  min={child.dateOfBirth}
+                  onChange={(e) => dispatch({ type: "SET_REPORT_DATE", date: e.target.value })}
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary"
+                  required
+                />
+                <span className="text-[11px] text-muted-foreground block">
+                  May not be in the future (BR-01). Earliest allowed: {formatCalendarDate(child.dateOfBirth)}.
+                </span>
+              </div>
+
+              {/* Provenance Disclaimer (BR-02, BR-07) */}
+              <div className="rounded-lg border border-teal-200 bg-teal-50/70 p-3 text-xs text-teal-900 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200 space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold">
+                  <ShieldCheck className="h-4 w-4 text-teal-700 dark:text-teal-300" aria-hidden />
+                  <span>Provenance: parent_reported</span>
+                </div>
+                <p className="leading-relaxed">
+                  Caregiver-entered completions are stored as parent-reported unverified records. They will not be marked as health-worker verified in this demonstration.
+                </p>
+              </div>
+
+              {/* Error feedback */}
+              {reportModal.error && (
+                <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-800 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-200 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" aria-hidden />
+                  <span>{reportModal.error}</span>
+                </div>
+              )}
+
+              {/* Form Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "CLOSE_REPORT" })}
+                  disabled={reportModal.submitting}
+                  className="rounded-lg border px-3.5 py-2 text-xs font-medium text-foreground hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reportModal.submitting}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {reportModal.submitting ? "Saving…" : "Save Record"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Vaccine Detail Drawer / Dialog (FR-023) ── */}
+      {detailModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="detail-modal-title"
+        >
+          <div className="relative w-full max-w-lg rounded-xl border bg-background p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3 border-b pb-3">
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                  Vaccine Information Guide
+                </span>
+                <h3 id="detail-modal-title" className="text-xl font-bold text-foreground">
+                  {detailModal.vaccineName}
+                </h3>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {detailModal.vaccineCode} · {detailModal.doseNumber}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "CLOSE_DETAIL" })}
+                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                aria-label="Close dialog"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Target Diseases */}
+              <div className="space-y-1.5">
+                <span className="font-semibold text-foreground uppercase tracking-wider text-[11px]">
+                  Diseases Prevented
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {detailModal.targetDiseases.map((d) => (
+                    <span
+                      key={d}
+                      className="px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200 text-teal-900 font-medium dark:bg-teal-950 dark:border-teal-800 dark:text-teal-200"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timing & Administration */}
+              <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 border">
+                <div>
+                  <span className="text-muted-foreground block font-medium">Standard Milestone</span>
+                  <span className="font-semibold text-foreground block">{detailModal.ageMilestoneLabel}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-medium">Route & Dosage</span>
+                  <span className="font-semibold text-foreground block">{detailModal.administrationRoute}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground block font-medium">Recommended Anatomical Site</span>
+                  <span className="font-semibold text-foreground block">{detailModal.recommendedSite}</span>
+                </div>
+              </div>
+
+              {/* Context Note */}
+              <div className="space-y-1">
+                <span className="font-semibold text-foreground uppercase tracking-wider text-[11px]">
+                  Clinical Context Note (FR-023)
+                </span>
+                <p className="text-muted-foreground leading-relaxed">
+                  {detailModal.contextNote}
+                </p>
+              </div>
+
+              {/* Expected Reactions */}
+              <div className="space-y-1 rounded-lg bg-amber-50/70 border border-amber-200 p-3 dark:bg-amber-950/30 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+                <span className="font-semibold flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 text-amber-600" aria-hidden />
+                  Expected Normal Reaction
+                </span>
+                <p className="leading-relaxed">
+                  {detailModal.expectedReactionNotice}
+                </p>
+              </div>
+
+              {/* Missed Dose Guidance (BR-03) */}
+              <div className="space-y-1 rounded-lg bg-rose-50/70 border border-rose-200 p-3 dark:bg-rose-950/30 dark:border-rose-800 text-rose-900 dark:text-rose-200">
+                <span className="font-semibold flex items-center gap-1.5">
+                  <PhoneCall className="h-3.5 w-3.5 text-rose-600" aria-hidden />
+                  If Missed or Delayed (BR-03)
+                </span>
+                <p className="leading-relaxed">
+                  {detailModal.missedDoseGuidance}
+                </p>
+              </div>
+
+              {/* Baseline Source Link */}
+              <div className="border-t pt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Baseline: Sri Lanka EPI 2023</span>
+                <a
+                  href={EPI_SCHEDULE_METADATA.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                >
+                  <span>Official PDF Reference</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "CLOSE_DETAIL" })}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90"
+              >
+                Close Guidance
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reminder Preview Dialog (FR-025, BR-07) ── */}
+      {reminderPreviewMilestone && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reminder-modal-title"
+        >
+          <div className="relative w-full max-w-md rounded-xl border bg-background p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-2 border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                  <Bell className="h-4 w-4" aria-hidden />
+                </div>
+                <div>
+                  <h3 id="reminder-modal-title" className="text-base font-bold text-foreground">
+                    Reminder Preview
+                  </h3>
+                  <span className="text-xs text-rose-600 font-semibold tracking-wide">
+                    NO MESSAGE SENT (FR-025, BR-07)
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "CLOSE_REMINDER" })}
+                className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
+                aria-label="Close dialog"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <p className="text-muted-foreground leading-relaxed">
+                This dialog demonstrates what an automated reminder notice would contain in a future production release. In SuwaDaru F0, <strong>no SMS, email, or push notifications are ever transmitted.</strong>
+              </p>
+
+              {/* Sample SMS Mock Container */}
+              <div className="rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 p-4 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-amber-800 dark:text-amber-300 font-mono font-semibold">
+                  <span>📱 SMS TEMPLATE PREVIEW</span>
+                  <span>PREVIEW ONLY</span>
+                </div>
+                <div className="rounded-lg bg-background p-3 shadow-xs border text-foreground text-xs leading-relaxed font-sans">
+                  &ldquo;SuwaDaru Reminder: <strong>{child.name}</strong> is scheduled for <strong>{reminderPreviewMilestone.vaccineName}</strong> on <strong>{formatCalendarDate(reminderPreviewMilestone.dueDate)}</strong>. Please bring your Child Health Development Record (CHDR) to your local MOH clinic.&rdquo;
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-muted p-3 text-[11px] text-muted-foreground space-y-1">
+                <strong>Honesty & Reliability Guardrail:</strong>
+                <p>
+                  SuwaDaru strictly enforces demo honesty (BR-07). Status is never marked as &ldquo;message sent&rdquo; or &ldquo;delivered&rdquo;.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "CLOSE_REMINDER" })}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

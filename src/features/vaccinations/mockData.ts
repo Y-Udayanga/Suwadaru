@@ -5,9 +5,11 @@
  * history, do not constitute clinical verification, and must never be treated as
  * PHM-confirmed or health-worker-verified records.
  *
- * Schedule baseline: Sri Lanka EPI 2023 PDF (research reference only; verify
- * latest effective circular before any live deployment).
- * Source: https://www.epid.gov.lk/storage/post/pdfs/en_6403b42a75fa4_Doc2.pdf
+ * SOURCING & BASELINE:
+ *   EPI Schedule versioned in `./scheduleConfig.ts`.
+ *   Baseline: Published Sri Lanka EPI 2023 PDF (research reference only; verify
+ *   latest effective circular before any live deployment).
+ *   Source: https://www.epid.gov.lk/storage/post/pdfs/en_6403b42a75fa4_Doc2.pdf
  *
  * INTEGRATION NOTE FOR FRONTEND A:
  *   When `vaccinationService` from `@/services/contracts` is wired, replace
@@ -16,129 +18,18 @@
  */
 
 import type { VaccinationMilestone, VaccinationRecord } from "@/types"
+import { addCalendarMonths } from "./calendarDate"
+import {
+  EPI_SCHEDULE_DEFINITIONS,
+  EPI_SCHEDULE_METADATA,
+} from "./scheduleConfig"
 
-const SCHEDULE_VERSION = "LK-EPI-2023-baseline-research-only"
-const SOURCE_URL =
-  "https://www.epid.gov.lk/storage/post/pdfs/en_6403b42a75fa4_Doc2.pdf"
-
-// ---------------------------------------------------------------------------
-// Helper: add calendar months to a date, respecting end-of-month (BR-01).
-// ---------------------------------------------------------------------------
-function addCalendarMonths(isoDate: string, months: number): string {
-  const [y, m, d] = isoDate.split("-").map(Number)
-  let targetYear = y + Math.floor((m - 1 + months) / 12)
-  let targetMonth = ((m - 1 + months) % 12) + 1
-  // Clamp to last day of target month (BR-01 end-of-month rule).
-  const maxDay = new Date(targetYear, targetMonth, 0).getDate()
-  const targetDay = Math.min(d, maxDay)
-  return [
-    String(targetYear).padStart(4, "0"),
-    String(targetMonth).padStart(2, "0"),
-    String(targetDay).padStart(2, "0"),
-  ].join("-")
-}
-
-// ---------------------------------------------------------------------------
-// EPI schedule definitions (age in completed calendar months).
-// 0 = birth window vaccines.
-// ---------------------------------------------------------------------------
-type ScheduleEntry = {
-  vaccineCode: string
-  vaccineName: string
-  ageMonths: number | null
-  birthWindow?: boolean
-}
-
-export const EPI_SCHEDULE_ENTRIES: ScheduleEntry[] = [
-  {
-    vaccineCode: "BCG",
-    vaccineName: "BCG",
-    ageMonths: null,
-    birthWindow: true,
-  },
-  {
-    vaccineCode: "PENTA1",
-    vaccineName: "Pentavalent 1",
-    ageMonths: 2,
-  },
-  {
-    vaccineCode: "OPV1",
-    vaccineName: "OPV 1",
-    ageMonths: 2,
-  },
-  {
-    vaccineCode: "fIPV1",
-    vaccineName: "fIPV 1",
-    ageMonths: 2,
-  },
-  {
-    vaccineCode: "PENTA2",
-    vaccineName: "Pentavalent 2",
-    ageMonths: 4,
-  },
-  {
-    vaccineCode: "OPV2",
-    vaccineName: "OPV 2",
-    ageMonths: 4,
-  },
-  {
-    vaccineCode: "fIPV2",
-    vaccineName: "fIPV 2",
-    ageMonths: 4,
-  },
-  {
-    vaccineCode: "PENTA3",
-    vaccineName: "Pentavalent 3",
-    ageMonths: 6,
-  },
-  {
-    vaccineCode: "OPV3",
-    vaccineName: "OPV 3",
-    ageMonths: 6,
-  },
-  {
-    vaccineCode: "MMR1",
-    vaccineName: "MMR 1",
-    ageMonths: 9,
-  },
-  {
-    vaccineCode: "JE",
-    vaccineName: "Japanese Encephalitis",
-    ageMonths: 12,
-  },
-  {
-    vaccineCode: "DTP_BOOST",
-    vaccineName: "DTP Booster",
-    ageMonths: 18,
-  },
-  {
-    vaccineCode: "OPV4",
-    vaccineName: "OPV 4",
-    ageMonths: 18,
-  },
-  {
-    vaccineCode: "MMR2",
-    vaccineName: "MMR 2",
-    ageMonths: 36,
-  },
-  {
-    vaccineCode: "DT_BOOST",
-    vaccineName: "DT Booster",
-    ageMonths: 60,
-  },
-  {
-    vaccineCode: "OPV5",
-    vaccineName: "OPV 5",
-    ageMonths: 60,
-  },
-]
-
-/** Build a dated schedule from a child's date-of-birth string. */
+/** Build a dated schedule from a child's date-of-birth string using calendar-month arithmetic. */
 export function buildSchedule(
   childId: string,
   dateOfBirth: string,
 ): VaccinationMilestone[] {
-  return EPI_SCHEDULE_ENTRIES.map((entry, i) => {
+  return EPI_SCHEDULE_DEFINITIONS.map((entry, i) => {
     const dueDate = entry.birthWindow
       ? dateOfBirth
       : addCalendarMonths(dateOfBirth, entry.ageMonths as number)
@@ -149,15 +40,15 @@ export function buildSchedule(
       ageMonths: entry.ageMonths,
       birthWindow: entry.birthWindow,
       dueDate,
-      scheduleVersion: SCHEDULE_VERSION,
-      sourceUrl: SOURCE_URL,
+      scheduleVersion: EPI_SCHEDULE_METADATA.version,
+      sourceUrl: EPI_SCHEDULE_METADATA.sourceUrl,
     }
   })
 }
 
 // ---------------------------------------------------------------------------
 // Seeded fictional records — Nethmi (female, DOB 2025-04-15).
-// Status: demo; not verified by any health worker.
+// Status: demo (synthetic parent_reported); not verified by any health worker.
 // ---------------------------------------------------------------------------
 export const NETHMI_VACCINATION_RECORDS: VaccinationRecord[] = [
   {

@@ -78,8 +78,10 @@ No profiles or health records are seeded. Create an account and add your own chi
 
 Requirements and the frontend handoff are in `docs/`.
 
-## Live AI chat
+## Streaming AI
 
-Run `npm run dev` with `GEMINI_API_KEY` in the untracked `.env` file. Restart Vite after changing server environment values. Open `/ai`, or a child's Nutrition tab, to stream an answer. Nutrition chat keeps conversation context in memory and supports Stop and New chat. The server defaults to `gemini-3.5-flash-lite`; set `GEMINI_MODEL` to override it.
+The public `/ai` assistant and the child Nutrition page stream educational replies from `/api/chat`. Nutrition notes remain a separate saved-record feature; conversations are held in page memory, not written to health records. Replies support conversation context, Stop, retry, and New chat. Keys stay on the server.
 
-The browser calls `/api/chat`; the key is never included in the client service. Do not use `VITE_GEMINI_API_KEY`. The development server provides this endpoint, and `api/chat.ts` provides a Node serverless entry point. Static-only hosting and `vite preview` do not provide the endpoint. Configure the server environment when deploying. Authentication and per-user rate limiting must be added before exposing this endpoint publicly. No deployment was performed as part of this change.
+Set `GEMINI_API_KEY` in the server environment. Default model: `gemini-3.5-flash-lite` (verified against the live API). Override with `GEMINI_MODEL`. Optional comma-separated `GEMINI_FALLBACK_MODELS` are tried only for model availability/quota errors before streaming begins. Never use `VITE_GEMINI_API_KEY`.
+
+`npm run dev` and `npm run preview` include the local API. Vercel deploys `api/chat.ts`; `vercel.json` preserves API routes and supports browser deep links. `npm run test:ai` checks validation, fallback, incremental delivery, UTF-8 parsing and incomplete-stream errors. The public educational assistant does not access child records. Add platform abuse limits before operating at scale; provider quotas still apply.

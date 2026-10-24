@@ -240,6 +240,7 @@ function buildChartData(
 // Main Component
 // ---------------------------------------------------------------------------
 export function GrowthPage({ childId }: ChildFeaturePageProps) {
+  const { language } = useLanguage()
   const [state, dispatch] = useReducer(reducer, { phase: "loading" })
   const [today] = useState(() => new Date().toISOString().slice(0, 10))
   const weightInputRef = useRef<HTMLInputElement>(null)
@@ -341,7 +342,7 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
     successToast,
   } = state
 
-  const { language } = useLanguage()
+
   const isSi = language === "si"
   const childAgeMonths = ageInMonths(child.dateOfBirth, today)
   const chartData = buildChartData(child, measurements, reference)
@@ -1109,3 +1110,4 @@ export function GrowthPage({ childId }: ChildFeaturePageProps) {
     </div>
   )
 }
+

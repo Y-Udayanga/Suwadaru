@@ -24,6 +24,7 @@ export interface UpdateChildInput {
   name?: string
   dateOfBirth?: IsoDate
   sex?: ChildSex
-  birthWeightKg?: Kilograms
-  clinicName?: string
+  /** Omit to preserve; null clears an optional value. */
+  birthWeightKg?: Kilograms | null
+  clinicName?: string | null
 }

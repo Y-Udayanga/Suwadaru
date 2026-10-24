@@ -204,4 +204,13 @@ test("MockChildService: Seeding, Get, Add, Edit, and Safe 404 (T-04, T-05)", asy
   const reloadedList = await freshServiceInstance.list()
   assert.strictEqual(reloadedList.length, 3)
   assert.strictEqual(reloadedList[2].name, "Aruni Kumari")
+
+  // The connected contract permits null to clear optional demographics.
+  const cleared = await childService.update(created.id, {
+    birthWeightKg: null,
+    clinicName: null,
+  })
+  assert.strictEqual(cleared.birthWeightKg, undefined)
+  assert.strictEqual(cleared.clinicName, undefined)
+  assert.strictEqual(cleared.name, "Aruni Kumari")
 })

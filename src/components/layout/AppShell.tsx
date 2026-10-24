@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { ChatPanel } from "@/features/ai/ChatPanel"
 import { useState } from "react"
 import { NavLink, Outlet, useNavigate } from "react-router"
 import {
@@ -428,6 +429,7 @@ export function AppShell() {
   return (
     <div className="relative flex min-h-svh min-w-0 bg-background/80 text-foreground transition-colors duration-300">
       <AmbientBackground />
+      <ChatPanel />
       {/* Skip link — keyboard users jump past navigation */}
       <a
         href="#main-content"

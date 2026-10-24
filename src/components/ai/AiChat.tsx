@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { streamChat, type ChatTurn } from '@/services/gemini'
 
 type Message = { role: 'user' | 'model'; text: string; incomplete?: boolean }
@@ -10,6 +10,7 @@ const starters = [
 ]
 
 export function AiChat({ title = 'SuwaDaru AI assistant' }: { title?: string }) {
+  const questionId = useId()
   const [messages, setMessages] = useState<Message[]>([])
   const [prompt, setPrompt] = useState(''), [answer, setAnswer] = useState('')
   const [error, setError] = useState(''), [model, setModel] = useState('')
@@ -84,8 +85,8 @@ export function AiChat({ title = 'SuwaDaru AI assistant' }: { title?: string }) 
     </div>
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
     <form onSubmit={event => { event.preventDefault(); void send() }} className="space-y-3">
-      <label htmlFor="ai-question" className="block font-medium">Your question</label>
-      <textarea id="ai-question" value={prompt} onChange={e => setPrompt(e.target.value)} disabled={busy} maxLength={4000} rows={3} placeholder="Ask a question or choose a suggestion above…" className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-2 focus-visible:outline-ring" />
+      <label htmlFor={questionId} className="block font-medium">Your question</label>
+      <textarea id={questionId} value={prompt} onChange={e => setPrompt(e.target.value)} disabled={busy} maxLength={4000} rows={3} placeholder="Ask a question or choose a suggestion above…" className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-2 focus-visible:outline-ring" />
       <div className="flex flex-wrap items-center gap-3">
         <button disabled={busy || !prompt.trim()} className="min-h-11 rounded-xl bg-primary px-6 py-2 font-medium text-primary-foreground disabled:opacity-50">Send</button>
         {busy && <button type="button" onClick={() => controller.current?.abort()} className="min-h-11 rounded-xl border border-border px-4">Stop response</button>}

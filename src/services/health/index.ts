@@ -16,7 +16,22 @@ export {
 } from "./growth.ts"
 export {
   cancelClinicAppointment,
+  completeClinicAppointment,
   createClinicAppointment,
   getClinicAppointments,
+  getOverdueClinicAppointments,
+  getUpcomingClinicAppointments,
+  listAppointmentReminderPreviews,
   updateClinicAppointment,
 } from "./appointments.ts"
+export {
+  appointmentTimingLabel,
+  buildReminderPreview,
+  type AppointmentReminderPreview,
+  type AppointmentTimingLabel,
+} from "./reminders.ts"
+export {
+  askNutritionAssistant,
+  type NutritionAssistantReply,
+  type NutritionSafetyCategory,
+} from "./nutrition.ts"

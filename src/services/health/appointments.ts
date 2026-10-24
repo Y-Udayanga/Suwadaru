@@ -11,6 +11,11 @@ import {
   toClinicAppointment,
   type ClinicAppointmentRow,
 } from "./mappers.ts"
+import {
+  appointmentTimingLabel,
+  buildReminderPreview,
+  type AppointmentReminderPreview,
+} from "./reminders.ts"
 import { assertUuid, throwSupabaseError } from "./supabase-error.ts"
 
 const APPOINTMENT_COLUMNS =
@@ -85,6 +90,55 @@ export async function cancelClinicAppointment(
 ): Promise<ClinicAppointment> {
   assertUuid(appointmentId, "Appointment id")
   return writeAppointment(supabase, appointmentId, { status: "cancelled" })
+}
+
+/** Marks a visit completed. It does not send a reminder. */
+export async function completeClinicAppointment(
+  supabase: SupabaseClient,
+  appointmentId: string,
+): Promise<ClinicAppointment> {
+  assertUuid(appointmentId, "Appointment id")
+  return writeAppointment(supabase, appointmentId, { status: "completed" })
+}
+
+/** Scheduled visits whose time is still ahead in Asia/Colombo. */
+export async function getUpcomingClinicAppointments(
+  supabase: SupabaseClient,
+  childId: string,
+  now: Date = new Date(),
+): Promise<ClinicAppointment[]> {
+  const appointments = await getClinicAppointments(supabase, childId)
+  return appointments.filter(
+    (appointment) => appointmentTimingLabel(appointment, now) === "upcoming",
+  )
+}
+
+/** Scheduled visits whose time has passed. Completed and cancelled visits are omitted. */
+export async function getOverdueClinicAppointments(
+  supabase: SupabaseClient,
+  childId: string,
+  now: Date = new Date(),
+): Promise<ClinicAppointment[]> {
+  const appointments = await getClinicAppointments(supabase, childId)
+  return appointments.filter(
+    (appointment) => appointmentTimingLabel(appointment, now) === "overdue",
+  )
+}
+
+/**
+ * Preview text for scheduled visits. deliveryState is always not_sent.
+ * This does not send SMS or push.
+ */
+export async function listAppointmentReminderPreviews(
+  supabase: SupabaseClient,
+  childId: string,
+  now: Date = new Date(),
+): Promise<AppointmentReminderPreview[]> {
+  const appointments = await getClinicAppointments(supabase, childId)
+  return appointments.flatMap((appointment) => {
+    const preview = buildReminderPreview(appointment, now)
+    return preview ? [preview] : []
+  })
 }
 
 async function writeAppointment(

@@ -1,4 +1,6 @@
 import type { ComponentType } from "react"
+import { AuthCallbackPage } from "@/auth/AuthCallbackPage"
+import { RequireAuth } from "@/auth/RequireAuth"
 import { Route, Routes, useParams } from "react-router"
 import { AppShell } from "@/components/layout/AppShell"
 import { NotFoundPage } from "@/components/layout/NotFoundPage"
@@ -35,6 +37,8 @@ function ChildFeatureRoute({
 export function AppRouter() {
   return (
     <Routes>
+      <Route path="auth/callback" element={<AuthCallbackPage />} />
+      <Route path="reset-password" element={<AuthCallbackPage resetPassword />} />
       <Route element={<PublicRoutes />}>
         <Route index element={<LandingPage />} />
         <Route path="login" element={<LoginPage />} />
@@ -43,6 +47,7 @@ export function AppRouter() {
         <Route path="todos" element={<TodosPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+      <Route element={<RequireAuth />}>
       <Route element={<AppShell />}>
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="children/new" element={<AddChildPage />} />
@@ -66,6 +71,7 @@ export function AppRouter() {
           path="children/:childId/appointments"
           element={<ChildFeatureRoute page={AppointmentsPage} />}
         />
+      </Route>
       </Route>
     </Routes>
   )

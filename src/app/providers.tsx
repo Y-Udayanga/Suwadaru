@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { BrowserRouter } from "react-router"
+import { AuthProvider } from "@/auth/AuthProvider"
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  return <BrowserRouter>{children}</BrowserRouter>
+  return <AuthProvider><BrowserRouter>{children}</BrowserRouter></AuthProvider>
 }

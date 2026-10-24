@@ -9,8 +9,9 @@ tables, invitations, frontend adapter, or hosted database changes.
 
 - `user_profiles.id` references existing `auth.users.id` (one-to-one,
   cascade on auth-user deletion). Users may select/insert/update their own
-  profile; only `full_name` can be updated. A profile is not auto-created on
-  sign-up: authenticated code can insert its own `id` and optional name.
+  profile; only `full_name` can be updated. After Phase 4, a private Auth INSERT
+  trigger provisions profiles atomically; browser INSERT is removed. See the
+  [Phase 4 integration guide](../docs/Phase4_Auth_Integration.md).
 - `children.created_by` references `auth.users.id` with `ON DELETE RESTRICT`.
   It records immutable creator provenance; it does not confer access.
 - `child_caregivers.child_id` references `children.id` with `ON DELETE CASCADE`.

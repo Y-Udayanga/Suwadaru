@@ -1,11 +1,13 @@
 /**
- * AmbientBackground — Premium Pediatric Health Theme
+ * AmbientBackground
  *
- * Visibly captivating, high-aesthetic animated ambient background:
- * - Visibly defined floating gradient spheres with smooth orbital drift.
- * - Gentle glowing healthcare & maternal stars / heart / sparkle dust.
- * - Perfectly balanced contrast and opacity for both Light & Dark modes.
- * - Respects prefers-reduced-motion and zero interaction interference.
+ * A luxury animated ambient background featuring:
+ * 1. Multi-layered organic floating mesh glowing orbs that drift and breathe.
+ * 2. Automatic adaptation to Light and Dark modes.
+ * 3. Subtle micro-dot matrix pattern with vignette fading.
+ * 4. Ambient starlight/sparkle dust particles.
+ * 5. Full support for prefers-reduced-motion (freezes animations).
+ * 6. pointer-events-none and GPU-accelerated.
  */
 
 import { memo } from "react"
@@ -24,123 +26,119 @@ export const AmbientBackground = memo(function AmbientBackground({
         className,
       )}
     >
-      {/* ── 1. Vibrant Floating Ambient Gradient Orbs ── */}
-      {/* Primary Rose Aura (Top Left) */}
+      {/* ── Layer 1: Animated Multi-Color Mesh Glow Orbs ── */}
+      {/* Orb 1: Warm Vibrant Rose / Coral Aura (Top-Left) */}
       <div
         className={cn(
-          "absolute -top-16 -left-16 size-[380px] sm:size-[520px] rounded-full",
-          "bg-gradient-to-br from-rose-400/40 via-pink-400/30 to-amber-300/20",
-          "dark:from-rose-600/30 dark:via-rose-900/35 dark:to-purple-950/20",
-          "blur-[50px] sm:blur-[75px]",
+          "absolute -top-[10%] -left-[8%] h-[55vw] w-[55vw] max-h-[700px] max-w-[700px] rounded-full",
+          "bg-gradient-to-br from-rose-500/35 via-pink-400/25 to-amber-300/20",
+          "dark:from-rose-600/25 dark:via-rose-900/28 dark:to-transparent",
+          "blur-[80px] md:blur-[110px]",
           "animate-ambient-1",
         )}
       />
 
-      {/* Warm Golden Honey Aura (Top Right) */}
+      {/* Orb 2: Warm Sunshine Gold & Amber (Top-Right) */}
       <div
         className={cn(
-          "absolute top-[5%] -right-20 size-[340px] sm:size-[480px] rounded-full",
+          "absolute -top-[8%] -right-[6%] h-[52vw] w-[52vw] max-h-[650px] max-w-[650px] rounded-full",
           "bg-gradient-to-bl from-amber-400/35 via-orange-300/25 to-rose-300/20",
-          "dark:from-amber-500/25 dark:via-amber-900/30 dark:to-transparent",
-          "blur-[45px] sm:blur-[70px]",
+          "dark:from-amber-500/20 dark:via-amber-900/22 dark:to-transparent",
+          "blur-[85px] md:blur-[115px]",
           "animate-ambient-2",
         )}
       />
 
-      {/* Calming Pediatric Teal Aura (Center / Left) */}
+      {/* Orb 3: Fresh Mint & Care Emerald (Mid-Left) */}
       <div
         className={cn(
-          "absolute top-[45%] -left-24 size-[320px] sm:size-[450px] rounded-full",
-          "bg-gradient-to-tr from-teal-400/30 via-emerald-300/20 to-transparent",
-          "dark:from-teal-600/20 dark:via-emerald-950/25 dark:to-transparent",
-          "blur-[50px] sm:blur-[80px]",
+          "absolute top-[40%] -left-[12%] h-[48vw] w-[48vw] max-h-[600px] max-w-[600px] rounded-full",
+          "bg-gradient-to-tr from-emerald-400/25 via-teal-300/20 to-sky-300/15",
+          "dark:from-emerald-700/18 dark:via-teal-950/20 dark:to-transparent",
+          "blur-[80px] md:blur-[110px]",
           "animate-ambient-3",
         )}
       />
 
-      {/* Soft Violet & Rose Warmth (Bottom Right) */}
+      {/* Orb 4: Rose Blush & Maternal Violet Center Warmth (Bottom-Right) */}
       <div
         className={cn(
-          "absolute -bottom-20 -right-16 size-[400px] sm:size-[550px] rounded-full",
-          "bg-gradient-to-tl from-rose-400/35 via-pink-300/25 to-teal-300/20",
-          "dark:from-rose-700/25 dark:via-purple-950/30 dark:to-pink-900/20",
-          "blur-[55px] sm:blur-[85px]",
+          "absolute top-[50%] -right-[10%] h-[52vw] w-[52vw] max-h-[650px] max-w-[650px] rounded-full",
+          "bg-gradient-to-tl from-purple-400/25 via-pink-300/25 to-rose-400/30",
+          "dark:from-purple-800/18 dark:via-rose-950/22 dark:to-transparent",
+          "blur-[85px] md:blur-[115px]",
           "animate-ambient-1",
         )}
       />
 
-      {/* Floating Center Subtle Orb */}
+      {/* Orb 5: Honey Amber Center Hearth (Center-Bottom) */}
       <div
         className={cn(
-          "absolute top-[35%] left-[45%] size-[260px] sm:size-[380px] rounded-full",
-          "bg-gradient-to-r from-pink-300/20 via-amber-200/25 to-rose-200/20",
-          "dark:from-rose-900/20 dark:via-amber-900/15 dark:to-rose-950/15",
-          "blur-[40px] sm:blur-[65px]",
+          "absolute -bottom-[10%] left-[25%] h-[45vw] w-[45vw] max-h-[550px] max-w-[550px] rounded-full",
+          "bg-gradient-to-t from-amber-400/25 via-rose-300/20 to-transparent",
+          "dark:from-amber-600/15 dark:via-rose-900/15 dark:to-transparent",
+          "blur-[75px] md:blur-[105px]",
           "animate-ambient-2",
         )}
       />
 
-      {/* ── 2. Subtle Geometric Grid Pattern with Radial Vignette ── */}
+      {/* ── Layer 2: Subtle Micro-Dot Matrix Texture with Vignette Mask ── */}
       <div
         className={cn(
-          "absolute inset-0 opacity-[0.045] dark:opacity-[0.08]",
-          "[background-image:radial-gradient(currentColor_1.5px,transparent_1.5px)]",
-          "[background-size:28px_28px]",
-          "[mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_85%)]",
+          "absolute inset-0 opacity-[0.035] dark:opacity-[0.055]",
+          "[background-image:radial-gradient(currentColor_1px,transparent_1px)]",
+          "[background-size:24px_24px]",
+          "[mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_80%)]",
         )}
       />
 
-      {/* ── 3. Floating Sparkle / Care Icons (Floating Animation) ── */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Soft Health Sparkle 1 */}
-        <div
-          className="absolute top-[18%] left-[12%] animate-ambient-sparkle"
-          style={{ animationDuration: "6s", animationDelay: "0s" }}
-        >
-          <svg className="size-5 text-rose-400 dark:text-rose-300 opacity-60" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
-          </svg>
-        </div>
-
-        {/* Soft Health Sparkle 2 */}
-        <div
-          className="absolute top-[28%] right-[15%] animate-ambient-sparkle"
-          style={{ animationDuration: "7.5s", animationDelay: "2s" }}
-        >
-          <svg className="size-4 text-amber-400 dark:text-amber-300 opacity-60" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
-          </svg>
-        </div>
-
-        {/* Soft Heart Care Icon */}
-        <div
-          className="absolute top-[62%] right-[10%] animate-ambient-sparkle"
-          style={{ animationDuration: "8s", animationDelay: "1s" }}
-        >
-          <svg className="size-5 text-rose-400 dark:text-rose-300 opacity-45" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-          </svg>
-        </div>
-
-        {/* Soft Sparkle 3 */}
-        <div
-          className="absolute bottom-[22%] left-[18%] animate-ambient-sparkle"
-          style={{ animationDuration: "6.8s", animationDelay: "3.5s" }}
-        >
-          <svg className="size-4 text-teal-400 dark:text-teal-300 opacity-55" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
-          </svg>
-        </div>
-
-        {/* Soft Medical Cross / Protection Motif */}
-        <div
-          className="absolute bottom-[35%] right-[25%] animate-ambient-sparkle"
-          style={{ animationDuration: "9s", animationDelay: "4s" }}
-        >
-          <svg className="size-4 text-rose-400 dark:text-rose-400 opacity-40" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
-          </svg>
-        </div>
+      {/* ── Layer 3: Floating Ambient Starlight Particles ── */}
+      <div className="absolute inset-0">
+        {/* Particle 1 */}
+        <span
+          className={cn(
+            "absolute top-[20%] left-[15%] size-1.5 rounded-full",
+            "bg-rose-400 dark:bg-rose-300 shadow-[0_0_8px_rgba(251,113,133,0.8)]",
+            "animate-ambient-sparkle",
+          )}
+          style={{ animationDelay: "0s", animationDuration: "5.5s" }}
+        />
+        {/* Particle 2 */}
+        <span
+          className={cn(
+            "absolute top-[35%] right-[22%] size-1 rounded-full",
+            "bg-amber-400 dark:bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.8)]",
+            "animate-ambient-sparkle",
+          )}
+          style={{ animationDelay: "1.8s", animationDuration: "6.2s" }}
+        />
+        {/* Particle 3 */}
+        <span
+          className={cn(
+            "absolute bottom-[28%] left-[25%] size-1 rounded-full",
+            "bg-teal-400 dark:bg-teal-300 shadow-[0_0_8px_rgba(45,212,191,0.8)]",
+            "animate-ambient-sparkle",
+          )}
+          style={{ animationDelay: "3.2s", animationDuration: "7s" }}
+        />
+        {/* Particle 4 */}
+        <span
+          className={cn(
+            "absolute bottom-[20%] right-[18%] size-1.5 rounded-full",
+            "bg-rose-400 dark:bg-rose-300 shadow-[0_0_8px_rgba(251,113,133,0.8)]",
+            "animate-ambient-sparkle",
+          )}
+          style={{ animationDelay: "2.4s", animationDuration: "5.8s" }}
+        />
+        {/* Particle 5 */}
+        <span
+          className={cn(
+            "absolute top-[55%] left-[8%] size-1 rounded-full",
+            "bg-amber-400 dark:bg-amber-200 shadow-[0_0_6px_rgba(251,191,36,0.7)]",
+            "animate-ambient-sparkle",
+          )}
+          style={{ animationDelay: "4.1s", animationDuration: "6.5s" }}
+        />
       </div>
     </div>
   )

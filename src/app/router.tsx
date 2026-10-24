@@ -13,6 +13,7 @@ import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { GrowthPage } from "@/features/growth/GrowthPage"
 import { LandingPage } from "@/features/landing/LandingPage"
 import { NutritionPage } from "@/features/nutrition/NutritionPage"
+import { GeminiPlaygroundPage } from "@/features/ai/GeminiPlaygroundPage"
 import { TodosPage } from "@/features/todos/TodosPage"
 import { VaccinationsPage } from "@/features/vaccinations/VaccinationsPage"
 import type { ChildFeaturePageProps } from "@/types"
@@ -41,6 +42,7 @@ export function AppRouter() {
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="todos" element={<TodosPage />} />
+        <Route path="ai" element={<GeminiPlaygroundPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route element={<AppShell />}>

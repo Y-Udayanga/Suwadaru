@@ -123,11 +123,11 @@ export class MockChildService implements ChildService {
       sex: input.sex !== undefined ? input.sex : existing.sex,
       birthWeightKg:
         input.birthWeightKg !== undefined
-          ? input.birthWeightKg
+          ? input.birthWeightKg ?? undefined
           : existing.birthWeightKg,
       clinicName:
         input.clinicName !== undefined
-          ? input.clinicName.trim() || undefined
+          ? input.clinicName?.trim() || undefined
           : existing.clinicName,
     }
 

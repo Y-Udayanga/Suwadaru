@@ -27,3 +27,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent directories & skills
+.agents
+.agents/
+.agents/**
+skills-lock.json
+
+# Phase documentation
+docs/Phase6_Frontend_Integration.md
+docs/Phase7_Backend_Audit.md

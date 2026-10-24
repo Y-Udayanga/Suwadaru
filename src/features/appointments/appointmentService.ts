@@ -16,6 +16,16 @@
 
 import type { AppointmentService } from "@/services/contracts"
 import { AppError } from "@/services/contracts"
+import {
+  cancelClinicAppointment,
+  completeClinicAppointment,
+  createClinicAppointment,
+  getClinicAppointments,
+  isPersistedChildId,
+  requireCaregiverSession,
+  updateClinicAppointment,
+} from "@/services/health"
+import { supabase } from "@/utils/supabase"
 import type {
   ClinicAppointment,
   CreateAppointmentInput,
@@ -50,11 +60,19 @@ export interface AppointmentServiceWithExtras extends AppointmentService {
 
 export const appointmentService: AppointmentServiceWithExtras = {
   async list(childId: string): Promise<ClinicAppointment[]> {
+    if (isPersistedChildId(childId)) {
+      await requireCaregiverSession()
+      return getClinicAppointments(supabase, childId)
+    }
     await delay()
     return sessionAppointments[childId] ? [...sessionAppointments[childId]] : []
   },
 
   async create(input: CreateAppointmentInput): Promise<ClinicAppointment> {
+    if (isPersistedChildId(input.childId)) {
+      await requireCaregiverSession()
+      return createClinicAppointment(supabase, input)
+    }
     await delay()
     if (input.clinicName?.includes("[simulate-error]")) {
       throw new AppError("unavailable", "Simulated service failure. Please retry.")
@@ -82,6 +100,10 @@ export const appointmentService: AppointmentServiceWithExtras = {
     appointmentId: string,
     input: UpdateAppointmentInput,
   ): Promise<ClinicAppointment> {
+    if (isPersistedChildId(appointmentId)) {
+      await requireCaregiverSession()
+      return updateClinicAppointment(supabase, appointmentId, input)
+    }
     await delay()
     if (input.clinicName !== undefined && !input.clinicName.trim()) {
       throw new AppError("validation", "Clinic name cannot be empty.")
@@ -113,6 +135,10 @@ export const appointmentService: AppointmentServiceWithExtras = {
   },
 
   async cancel(appointmentId: string): Promise<ClinicAppointment> {
+    if (isPersistedChildId(appointmentId)) {
+      await requireCaregiverSession()
+      return cancelClinicAppointment(supabase, appointmentId)
+    }
     await delay()
     for (const childId of Object.keys(sessionAppointments)) {
       const appt = findById(childId, appointmentId)
@@ -134,6 +160,10 @@ export const appointmentService: AppointmentServiceWithExtras = {
   },
 
   async complete(appointmentId: string): Promise<ClinicAppointment> {
+    if (isPersistedChildId(appointmentId)) {
+      await requireCaregiverSession()
+      return completeClinicAppointment(supabase, appointmentId)
+    }
     await delay()
     for (const childId of Object.keys(sessionAppointments)) {
       const appt = findById(childId, appointmentId)

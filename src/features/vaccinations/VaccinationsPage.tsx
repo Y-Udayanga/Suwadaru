@@ -907,7 +907,11 @@ export function VaccinationsPage({ childId }: ChildFeaturePageProps) {
                                 {formatCalendarDate(record.administeredOn ?? "")}
                               </span>
                               <span className="text-[11px] text-teal-700 dark:text-teal-300 block">
-                                Sourced: {record.source === "demo" ? "Sample demo (unverified)" : "parent_reported (unverified)"}
+                                Sourced: {record.source === "health_worker_verified"
+                                  ? "Verified by clinic"
+                                  : record.source === "demo"
+                                    ? "Sample demo (unverified)"
+                                    : "parent_reported (unverified)"}
                               </span>
                             </div>
                           ) : (

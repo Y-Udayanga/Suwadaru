@@ -16,6 +16,7 @@
 
 import type { Child } from "@/types"
 import { AppError } from "@/services/contracts"
+import { getCaregiverChild, isPersistedChildId } from "@/services/health"
 import { demoChildren } from "@/data/mock"
 
 const MOCK_DELAY = 300
@@ -29,6 +30,9 @@ function delay(ms = MOCK_DELAY): Promise<void> {
  * so callers can display a safe empty/404 state (BRD BR-08, T-05).
  */
 export async function resolveChild(childId: string): Promise<Child> {
+  if (isPersistedChildId(childId)) {
+    return getCaregiverChild(childId)
+  }
   await delay()
   const child = (demoChildren as readonly Child[]).find((c) => c.id === childId)
   if (!child) {

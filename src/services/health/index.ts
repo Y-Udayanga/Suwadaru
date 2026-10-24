@@ -35,3 +35,10 @@ export {
   type NutritionAssistantReply,
   type NutritionSafetyCategory,
 } from "./nutrition.ts"
+export {
+  createCaregiverChild,
+  getCaregiverChild,
+  listCaregiverChildren,
+  updateCaregiverChild,
+} from "./children.ts"
+export { hasCaregiverSession, isPersistedChildId, requireCaregiverSession } from "./session.ts"

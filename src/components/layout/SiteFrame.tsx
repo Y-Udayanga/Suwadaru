@@ -51,6 +51,7 @@ function PublicHeader() {
               ))}
             </ul>
           </nav>
+          <NavLink to="/ai" className={publicLinkClass}>AI assistant</NavLink>
           <LanguageToggle />
           <ThemeToggle />
         </div>
@@ -109,3 +110,4 @@ export function PublicRoutes() {
 
 // Keep SiteFrame exported for backwards-compat in case something imports it
 export { PublicLayout as SiteFrame }
+

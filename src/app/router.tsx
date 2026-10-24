@@ -15,6 +15,7 @@ import { ChildOverviewPage } from "@/features/children/ChildOverviewPage"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { GrowthPage } from "@/features/growth/GrowthPage"
 import { LandingPage } from "@/features/landing/LandingPage"
+import { GeminiPlaygroundPage } from "@/features/ai/GeminiPlaygroundPage"
 import { NutritionPage } from "@/features/nutrition/NutritionPage"
 import { TodosPage } from "@/features/todos/TodosPage"
 import { VaccinationsPage } from "@/features/vaccinations/VaccinationsPage"
@@ -69,6 +70,7 @@ export function AppRouter() {
       <Route element={<AccountAppProviders />}>
         <Route element={<PublicRoutes />}>
           <Route index element={<LandingPage />} />
+          <Route path="ai" element={<GeminiPlaygroundPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
@@ -111,3 +113,4 @@ export function AppRouter() {
     </Routes>
   )
 }
+

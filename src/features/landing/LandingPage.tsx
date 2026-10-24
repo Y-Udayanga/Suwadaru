@@ -263,7 +263,7 @@ export function LandingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {isSi ? "දේශීය ශ්‍රී ලාංකික ආහාර, පරිප්පු, එළවළු, කැඳ සහ හිරවීම් වැළැක්වීමේ උපදෙස් සුවදරු AI වෙතින් විමසන්න." : "Save feeding observations and questions for your clinic visit. AI advice is not connected."}
+              {isSi ? "දේශීය ශ්‍රී ලාංකික ආහාර, පරිප්පු, එළවළු, කැඳ සහ හිරවීම් වැළැක්වීමේ උපදෙස් සුවදරු AI වෙතින් විමසන්න." : "Ask the AI assistant nutrition questions with live replies, and save feeding observations for your clinic visit."}
             </CardContent>
           </Card>
 
@@ -398,3 +398,4 @@ export function LandingPage() {
     </div>
   )
 }
+

@@ -1,3 +1,4 @@
+import { AiChat } from "@/components/ai/AiChat"
 import { useCallback, useState, type FormEvent } from 'react'
 import { useLiveRecords } from '@/hooks/useLiveRecords'
 import { nutritionService } from './nutritionService'
@@ -55,6 +56,8 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
             : 'Save feeding observations and questions for your next clinic visit.'
         }
       />
+
+      <AiChat key={childId} title={isSi ? "සුවදරු AI පෝෂණ සහකාර" : "Nutrition AI assistant"} />
 
       {/* Safety notice banner */}
       <div className="rounded-xl border border-amber-300/80 bg-amber-50/70 p-4 text-xs sm:text-sm text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
@@ -155,4 +158,5 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
     </div>
   )
 }
+
 

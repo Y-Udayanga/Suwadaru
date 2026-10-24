@@ -1,4 +1,6 @@
 import type { ComponentType } from "react"
+import { AuthCallbackPage } from "@/auth/AuthCallbackPage"
+import { ConnectedAuthRoutes, DemoAppProviders } from "./providers"
 import { Route, Routes, useParams } from "react-router"
 import { AppShell } from "@/components/layout/AppShell"
 import { NotFoundPage } from "@/components/layout/NotFoundPage"
@@ -60,47 +62,52 @@ function ChildFeatureRoute({
 export function AppRouter() {
   return (
     <Routes>
-      <Route element={<PublicRoutes />}>
-        <Route index element={<LandingPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="todos" element={<TodosPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+      <Route element={<ConnectedAuthRoutes />}>
+        <Route path="auth/callback" element={<AuthCallbackPage />} />
+        <Route path="reset-password" element={<AuthCallbackPage resetPassword />} />
       </Route>
+      <Route element={<DemoAppProviders />}>
+        <Route element={<PublicRoutes />}>
+          <Route index element={<LandingPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="todos" element={<TodosPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
 
-      {/* Authenticated parent shell guarded by ProtectedRoute (FR-004) */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="children/new" element={<AddChildPage />} />
+        {/* Authenticated parent shell guarded by ProtectedRoute (FR-004) */}
         <Route
-          path="children/:childId"
-          element={<ChildFeatureRoute page={ChildOverviewPage} />}
-        />
-        <Route
-          path="children/:childId/vaccinations"
-          element={<ChildFeatureRoute page={VaccinationsPage} />}
-        />
-        <Route
-          path="children/:childId/growth"
-          element={<ChildFeatureRoute page={GrowthPage} />}
-        />
-        <Route
-          path="children/:childId/nutrition"
-          element={<ChildFeatureRoute page={NutritionPage} />}
-        />
-        <Route
-          path="children/:childId/appointments"
-          element={<ChildFeatureRoute page={AppointmentsPage} />}
-        />
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="children/new" element={<AddChildPage />} />
+          <Route
+            path="children/:childId"
+            element={<ChildFeatureRoute page={ChildOverviewPage} />}
+          />
+          <Route
+            path="children/:childId/vaccinations"
+            element={<ChildFeatureRoute page={VaccinationsPage} />}
+          />
+          <Route
+            path="children/:childId/growth"
+            element={<ChildFeatureRoute page={GrowthPage} />}
+          />
+          <Route
+            path="children/:childId/nutrition"
+            element={<ChildFeatureRoute page={NutritionPage} />}
+          />
+          <Route
+            path="children/:childId/appointments"
+            element={<ChildFeatureRoute page={AppointmentsPage} />}
+          />
+        </Route>
       </Route>
     </Routes>
   )
 }
-

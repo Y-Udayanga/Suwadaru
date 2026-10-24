@@ -31,11 +31,24 @@ export function LandingPage() {
         aria-labelledby="hero-heading"
         className="relative flex flex-col items-center text-center max-w-4xl mx-auto px-4 gap-6 pt-4 sm:pt-8"
       >
+        {/* Brand Emblem */}
+        <div className="relative mx-auto flex items-center justify-center">
+          <div className="relative size-24 sm:size-28 rounded-3xl overflow-hidden shadow-md border-2 border-primary/20 bg-white p-1 transition-transform duration-300 hover:scale-105">
+            <img
+              src="/suwadaru-logo.jpg"
+              alt="SuwaDaru Mother and Child Brand Logo"
+              className="size-full object-cover rounded-2xl"
+              loading="eager"
+            />
+          </div>
+        </div>
+
         {/* Prototype & Scope Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5 text-xs font-semibold text-primary">
           <Sparkles aria-hidden className="size-3.5 text-primary" />
           <span>Caregiver Health Companion • Prototype Demonstration</span>
         </div>
+
 
         {/* Hero Title & Tagline */}
         <div className="space-y-3">

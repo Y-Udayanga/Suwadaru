@@ -1,7 +1,7 @@
-import { Leaf } from "lucide-react"
 import { Link } from "react-router"
 import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
+import logoImg from "@/assets/logo.jpg"
 
 /**
  * AppLogo — brand mark for SuwaDaru.
@@ -9,32 +9,51 @@ import { routes } from "@/app/routes"
  * Props:
  *   collapsed?: boolean   — icon-only mode for narrow sidebar (default false)
  *   asLink?:    boolean   — wraps in a Link to "/" (default true)
+ *   size?:      "sm" | "md" | "lg" — size variation
  *   className?: string    — forwarded to the root element
  *
- * Always renders the Leaf icon + full name. In collapsed=true mode it hides
- * the text visually but keeps it accessible via aria-label on the wrapping
- * anchor so screen readers still announce the brand.
+ * Renders the SuwaDaru mother-child heart emblem + full brand name.
+ * In collapsed=true mode it hides the text visually but keeps it accessible
+ * via aria-label on the wrapping anchor so screen readers still announce the brand.
  */
 
 interface AppLogoProps {
   collapsed?: boolean
   asLink?: boolean
+  size?: "sm" | "md" | "lg"
   className?: string
 }
 
-function LogoContent({ collapsed }: { collapsed: boolean }) {
+function LogoContent({
+  collapsed,
+  size = "md",
+}: {
+  collapsed: boolean
+  size?: "sm" | "md" | "lg"
+}) {
+  const sizeClasses = {
+    sm: "size-8",
+    md: "size-9 sm:size-10",
+    lg: "size-12",
+  }[size]
+
   return (
     <>
-      {/* Leaf icon with teal gradient background */}
+      {/* Mother & Child Emblem */}
       <span
         aria-hidden="true"
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-xl",
-          "bg-gradient-to-br from-[#0F766E] to-[#0d6560]",
-          "shadow-sm",
+          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl",
+          "border border-primary/15 bg-white shadow-xs",
+          sizeClasses,
         )}
       >
-        <Leaf className="size-5 text-white" strokeWidth={2.5} />
+        <img
+          src={logoImg}
+          alt="SuwaDaru Caregiver and Child"
+          className="size-full object-cover"
+          loading="eager"
+        />
       </span>
 
       {/* Brand text — visually hidden when collapsed */}
@@ -58,9 +77,10 @@ function LogoContent({ collapsed }: { collapsed: boolean }) {
 export function AppLogo({
   collapsed = false,
   asLink = true,
+  size = "md",
   className,
 }: AppLogoProps) {
-  const inner = <LogoContent collapsed={collapsed} />
+  const inner = <LogoContent collapsed={collapsed} size={size} />
 
   if (asLink) {
     return (
@@ -68,7 +88,7 @@ export function AppLogo({
         to={routes.home}
         aria-label="SuwaDaru — go to home"
         className={cn(
-          "inline-flex items-center gap-3 rounded-lg",
+          "group inline-flex items-center gap-3 rounded-lg",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           collapsed && "justify-center",
           className,
@@ -82,7 +102,7 @@ export function AppLogo({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-3",
+        "group inline-flex items-center gap-3",
         collapsed && "justify-center",
         className,
       )}
@@ -91,3 +111,4 @@ export function AppLogo({
     </div>
   )
 }
+

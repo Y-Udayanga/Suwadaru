@@ -48,3 +48,11 @@ No personal or clinical data is seeded. Register, confirm the account email when
 Run `npm test`, `npm run test:auth`, `npm run test:children`, `npm run test:database`, and `npm run build`. SQL suites use the isolated PGlite installation described in `supabase/README.md`. `scripts/verify-hosted.mjs` is an explicit manual integration check requiring disposable credentials in ignored `node_modules/.hosted-test.json`; never run it with a real account. Provisioning/cleanup are deliberate administrative test steps, not application features.
 
 Frontend edits are local workspace changes; database migrations were applied to the hosted project. Publishing the frontend is a separate deployment step.
+
+## Main-branch integration
+
+The parallel 20261024160000 migration is retained as a compatibility checkpoint;
+the earlier connected-health migration remains the canonical schema. The main
+branch health adapters use the same child service and curated schedule tables,
+with no demonstration fallback. The optional nutrition Edge Function source is
+preserved but is not deployed or enabled by this merge.

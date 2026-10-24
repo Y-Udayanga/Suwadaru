@@ -48,6 +48,9 @@ type NavItemDef = {
 function getPrimaryNav(t: (key: TranslationKey, fallback?: string) => string): NavItemDef[] {
   return [
     {
+      to: routes.ai, label: "AI assistant", icon: <Salad aria-hidden className="size-4 shrink-0" />, end: true,
+    },
+    {
       to: routes.dashboard,
       label: t("nav.dashboard", "Dashboard"),
       icon: <LayoutDashboard aria-hidden className="size-4 shrink-0" />,

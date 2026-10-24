@@ -12,7 +12,8 @@ import { useLanguage, type TranslationKey } from "@/hooks/useLanguage"
 // PublicFrame — wrapper for unauthenticated pages (landing, login, register)
 // ---------------------------------------------------------------------------
 
-const publicNavDef: { to: string; labelKey: TranslationKey; fallback: string; end?: boolean }[] = [
+const publicNavDef: { to: string; labelKey?: TranslationKey; fallback: string; end?: boolean }[] = [
+  { to: routes.ai, fallback: "AI assistant", end: true },
   { to: routes.home, labelKey: "nav.home", fallback: "Home", end: true },
   { to: routes.login, labelKey: "nav.signIn", fallback: "Sign in", end: true },
   { to: routes.register, labelKey: "nav.register", fallback: "Register", end: true },
@@ -45,7 +46,7 @@ function PublicHeader() {
               {publicNavDef.map((item) => (
                 <li key={item.to}>
                   <NavLink to={item.to} end={item.end} className={publicLinkClass}>
-                    {t(item.labelKey, item.fallback)}
+                    {item.labelKey ? t(item.labelKey, item.fallback) : item.fallback}
                   </NavLink>
                 </li>
               ))}

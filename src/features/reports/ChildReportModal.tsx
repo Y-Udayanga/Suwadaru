@@ -82,9 +82,9 @@ export function ChildReportModal({ childId, isOpen, onClose }: ChildReportModalP
       aria-labelledby="report-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto"
     >
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-4xl max-h-[92dvh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
         {/* Modal Action Bar (Hidden when printed) */}
-        <div className="no-print flex items-center justify-between border-b border-border/80 bg-muted/30 px-5 py-3.5 shrink-0">
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-border/80 bg-muted/30 px-5 py-3.5 shrink-0">
           <div className="flex items-center gap-2 text-foreground font-semibold text-sm sm:text-base">
             <FileText className="size-4.5 text-primary" aria-hidden />
             <span id="report-modal-title">
@@ -99,7 +99,7 @@ export function ChildReportModal({ childId, isOpen, onClose }: ChildReportModalP
               type="button"
               onClick={handlePrint}
               disabled={loading || !!error}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 cursor-pointer shadow-xs transition-all"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 cursor-pointer shadow-xs transition-all"
             >
               <Printer className="size-3.5" aria-hidden />
               <span>{isSinhala ? "මුද්‍රණය / PDF සුරකින්න" : "Print / Save PDF"}</span>
@@ -108,7 +108,7 @@ export function ChildReportModal({ childId, isOpen, onClose }: ChildReportModalP
               type="button"
               onClick={onClose}
               aria-label="Close dialog"
-              className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring cursor-pointer transition-colors"
+              className="flex size-11 shrink-0 items-center justify-center rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring cursor-pointer transition-colors"
             >
               <X className="size-5" aria-hidden />
             </button>
@@ -116,7 +116,7 @@ export function ChildReportModal({ childId, isOpen, onClose }: ChildReportModalP
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-background/50">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-8 bg-background/50">
           {loading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
               <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -176,7 +176,7 @@ export function ChildReportModal({ childId, isOpen, onClose }: ChildReportModalP
                 <h2 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-border/60 pb-2">
                   {isSinhala ? "1. දරුවාගේ මූලික විස්තර (Child Identification)" : "1. Child Identification & Demographics"}
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
+                <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
                   <div>
                     <span className="text-muted-foreground block">{isSinhala ? "දරුවාගේ නම" : "Child Name"}:</span>
                     <strong className="text-sm text-foreground">{child.name}</strong>
@@ -357,7 +357,7 @@ export function ChildReportModal({ childId, isOpen, onClose }: ChildReportModalP
               </div>
 
               {/* Sign-off section */}
-              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-border/80 text-xs text-muted-foreground">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 pt-6 border-t border-border/80 text-xs text-muted-foreground">
                 <div>
                   <p className="mb-8">{isSinhala ? "දෙමාපිය / භාරකරු අත්සන:" : "Parent / Caregiver Signature:"}</p>
                   <div className="border-t border-dashed border-foreground/40 w-48" />

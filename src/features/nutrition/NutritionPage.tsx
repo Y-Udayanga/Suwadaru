@@ -73,7 +73,7 @@ export function NutritionPage({ childId }: ChildFeaturePageProps) {
 
       {loading && <p role="status" className="text-sm text-muted-foreground">{isSi ? 'සටහන් පූරණය වෙමින්…' : 'Loading notes…'}</p>}
       {error && (
-        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive flex items-center justify-between gap-3 text-sm">
+        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive flex flex-wrap items-center justify-between gap-3 text-sm">
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={() => void refresh()}>
             {isSi ? 'නැවත උත්සාහ කරන්න' : 'Retry'}

@@ -499,7 +499,7 @@ function AppointmentForm({
       aria-label={isEdit ? "Edit clinic appointment" : "Schedule new clinic appointment"}
       className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex flex-col gap-4 shadow-xs"
     >
-      <div className="flex items-center justify-between border-b border-primary/15 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-primary/15 pb-3">
         <div>
           <h2 className="text-base font-semibold text-primary flex items-center gap-1.5">
             <CalendarCheck2 className="h-4 w-4" aria-hidden />

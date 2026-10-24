@@ -137,9 +137,29 @@
   body {
     @apply bg-background text-foreground;
     margin: 0;
+    overflow-wrap: anywhere;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Keep form controls usable on phones without triggering input-focus zoom. */
+@media (max-width: 639px) {
+  button, [data-slot="button"] {
+    min-height: 44px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  button, select, input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
   }
 }
 

@@ -226,7 +226,7 @@ function DesktopSidebar() {
       aria-label="Application navigation"
       className={cn(
         // Layout
-        "hidden md:flex flex-col gap-4",
+        "hidden lg:flex flex-col gap-4",
         "min-h-svh shrink-0",
         "border-r border-border/70 bg-sidebar/95 backdrop-blur-md",
         // Transitions
@@ -267,7 +267,7 @@ function DesktopSidebar() {
       {/* Scrollable nav */}
       <nav
         aria-label="Main navigation"
-        className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 pb-4"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-4"
       >
         <NavSection
           items={primaryNav}
@@ -306,10 +306,10 @@ function MobileNav() {
   return (
     <>
       {/* Mobile top bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-background/85 backdrop-blur-md px-4 md:hidden shadow-2xs">
-        <AppLogo asLink />
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-background/85 backdrop-blur-md px-3 sm:px-4 lg:hidden shadow-2xs">
+        <AppLogo asLink className="min-w-0 [&>span:last-child]:hidden sm:[&>span:last-child]:flex" />
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <LanguageToggle compact />
           <ThemeToggle variant="icon" />
           <UserMenuButton compact />
@@ -320,7 +320,7 @@ function MobileNav() {
             aria-expanded={open}
             aria-controls="mobile-nav-sheet"
             onClick={() => setOpen(true)}
-            className="size-9"
+            className="size-11"
           >
             <Menu aria-hidden className="size-5" />
           </Button>
@@ -333,7 +333,7 @@ function MobileNav() {
           id="mobile-nav-sheet"
           side="left"
           showCloseButton={false}
-          className="flex w-72 flex-col gap-0 p-0"
+          className="flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-0 p-0"
           aria-label="Navigation drawer"
         >
           <SheetHeader className="flex h-14 flex-row items-center justify-between border-b border-border px-4 py-0">
@@ -356,7 +356,7 @@ function MobileNav() {
 
           <nav
             aria-label="Mobile navigation"
-            className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-4"
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-4"
           >
             <NavSection
               items={primaryNav}
@@ -418,8 +418,8 @@ function DemoSignOutButton() {
  * AppShell
  *
  * The root layout wrapper for all authenticated (post-login) routes.
- * Renders a desktop sidebar at ≥768 px and a mobile top bar + slide-in
- * drawer below 768 px. Page content is delivered via React Router <Outlet />.
+ * Renders a desktop sidebar at ≥1024 px and a mobile top bar + slide-in
+ * drawer below 1024 px. Page content is delivered via React Router <Outlet />.
  */
 export function AppShell() {
   const { session } = useAuth()
@@ -448,16 +448,16 @@ export function AppShell() {
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Desktop top bar */}
-        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-md px-6 md:flex shadow-2xs transition-colors duration-200">
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">
+        <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 backdrop-blur-md px-6 lg:flex shadow-2xs transition-colors duration-200">
+          <div className="min-w-0 flex-1 pr-4">
+            <p className="truncate text-xs text-muted-foreground">
               Caregiver account —{" "}
               <span className="font-medium text-foreground">
                 {displayName}
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <LanguageToggle />
             <ThemeToggle />
             <UserMenuButton />
@@ -473,7 +473,7 @@ export function AppShell() {
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex min-w-0 flex-1 flex-col px-4 py-6 outline-none md:px-6 lg:px-8"
+          className="flex min-w-0 flex-1 flex-col px-3 py-5 outline-none sm:px-6 sm:py-6 lg:px-8"
         >
           <Outlet />
         </main>

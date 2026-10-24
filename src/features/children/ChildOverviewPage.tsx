@@ -108,7 +108,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 max-w-4xl" role="status" aria-live="polite">
+      <div className="flex min-w-0 flex-col gap-6 max-w-4xl" role="status" aria-live="polite">
         <PageHeader title="Loading child profile..." />
         <LoadingSkeleton rows={4} />
       </div>
@@ -177,7 +177,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl">
+    <div className="flex min-w-0 flex-col gap-6 max-w-4xl">
       <PageHeader
         title={child.name}
         subtitle={
@@ -266,7 +266,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
       {/* Profile Overview Stats */}
       {!isEditing ? (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label={isSi ? "වයස" : "Age"}
               value={age.text}
@@ -554,7 +554,7 @@ export function ChildOverviewPage({ childId }: ChildFeaturePageProps) {
               </div>
             </CardContent>
 
-            <CardFooter className="flex justify-end gap-3 border-t border-border/50 bg-muted/20 px-6 py-4">
+            <CardFooter className="flex flex-wrap justify-end gap-3 border-t border-border/50 bg-muted/20 px-6 py-4">
               <Button
                 type="button"
                 variant="outline"

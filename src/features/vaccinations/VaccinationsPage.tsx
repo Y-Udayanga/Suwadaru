@@ -89,7 +89,7 @@ export function VaccinationsPage({ childId }: ChildFeaturePageProps) {
 
       {loading && <p role="status" className="text-sm text-muted-foreground">{isSi ? 'වාර්තා පූරණය වෙමින්…' : 'Loading records…'}</p>}
       {error && (
-        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive flex items-center justify-between gap-3 text-sm">
+        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive flex flex-wrap items-center justify-between gap-3 text-sm">
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={() => void refresh()}>
             {isSi ? 'නැවත උත්සාහ කරන්න' : 'Retry'}
@@ -178,7 +178,7 @@ export function VaccinationsPage({ childId }: ChildFeaturePageProps) {
         )}
         <ul className="divide-y divide-border/60">
           {data?.records.map((r) => (
-            <li key={r.id} className="py-3 flex items-center justify-between gap-3">
+            <li key={r.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <strong className="text-sm font-semibold text-foreground">{r.vaccineCode}</strong>
                 <p className="text-xs text-muted-foreground mt-0.5">

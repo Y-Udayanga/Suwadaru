@@ -63,24 +63,24 @@ export function AiChat({ title = 'SuwaDaru AI assistant' }: { title?: string }) 
     }
   }
 
-  return <section className="mx-auto max-w-3xl space-y-5">
+  return <section className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="text-2xl font-bold">{title}</h1>
-      <span role="status" className="rounded-full bg-mint px-3 py-1 text-sm text-foreground">{busy ? (answer ? 'Responding live' : 'Connecting…') : configured === null ? 'Checking connection…' : configured ? 'AI configured' : 'AI connection unavailable'}</span>
+      <span role="status" className="rounded-full bg-mint px-3 py-1 text-sm text-slate-900">{busy ? (answer ? 'Responding live' : 'Connecting…') : configured === null ? 'Checking connection…' : configured ? 'AI configured' : 'AI connection unavailable'}</span>
     </div>
     <p className="text-sm text-muted-foreground">Ask about nutrition, feeding, growth education, or clinic questions in English, Sinhala, or Tamil. AI can make mistakes; ask your midwife or doctor for personal medical advice.</p>
     <p className="text-xs text-muted-foreground">Your conversation is sent to Google Gemini. Avoid names or identifying details. Chats stay in this page’s memory and clear when you leave or start a new chat.</p>
     <div className="flex flex-wrap gap-2" aria-label="Suggested questions">
       {starters.map(starter => <button type="button" key={starter.label} disabled={busy} onClick={() => setPrompt(starter.prompt)} className="min-h-11 rounded-full border border-border bg-card px-4 text-sm hover:bg-mint disabled:opacity-50">{starter.label}</button>)}
     </div>
-    <div ref={transcript} onScroll={e => { const el = e.currentTarget; follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80 }} className="max-h-[55vh] min-h-64 space-y-4 overflow-y-auto rounded-2xl border border-border bg-card p-4" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions">
+    <div ref={transcript} onScroll={e => { const el = e.currentTarget; follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80 }} className="max-h-[55dvh] min-h-48 sm:min-h-64 space-y-4 overflow-y-auto rounded-2xl border border-border bg-card p-4" role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions">
       {!messages.length && <p className="text-muted-foreground">How can I help today? Include your child’s age and any food allergies when asking for meal ideas.</p>}
-      {messages.map((message, index) => <article key={index} className={`whitespace-pre-wrap break-words rounded-xl p-4 ${message.role === 'user' ? 'bg-mint' : 'bg-muted'}`}>
+      {messages.map((message, index) => <article key={index} className={`whitespace-pre-wrap [overflow-wrap:anywhere] rounded-xl p-4 ${message.role === 'user' ? 'bg-mint text-slate-900' : 'bg-muted'}`}>
         <p className="mb-2 text-sm font-semibold">{message.role === 'user' ? 'You' : 'SuwaDaru'}</p>
         <p>{message.text}</p>
         {message.incomplete && <p className="mt-2 text-sm font-medium">Incomplete answer — please retry before relying on it.</p>}
       </article>)}
-      {busy && <article className="whitespace-pre-wrap break-words rounded-xl bg-muted p-4"><p className="mb-2 text-sm font-semibold">SuwaDaru</p><p>{answer || 'Thinking…'}</p></article>}
+      {busy && <article className="whitespace-pre-wrap [overflow-wrap:anywhere] rounded-xl bg-muted p-4"><p className="mb-2 text-sm font-semibold">SuwaDaru</p><p>{answer || 'Thinking…'}</p></article>}
     </div>
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
     <form onSubmit={event => { event.preventDefault(); void send() }} className="space-y-3">

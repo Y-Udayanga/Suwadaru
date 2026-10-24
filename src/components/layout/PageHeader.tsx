@@ -38,12 +38,12 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "mb-6 flex min-w-0 flex-wrap items-start justify-between gap-4",
+        "mb-6 flex min-w-0 flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap",
         className,
       )}
     >
       <div className="min-w-0 flex-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground text-balance">
+        <h1 className="text-xl font-bold tracking-tight text-foreground text-balance sm:text-2xl">
           {title}
         </h1>
         {subtitle && (
@@ -51,7 +51,7 @@ export function PageHeader({
         )}
       </div>
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
           {actions}
         </div>
       )}

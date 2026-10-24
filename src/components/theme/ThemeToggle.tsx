@@ -26,8 +26,8 @@ export function ThemeToggle({ className, variant = "pill" }: ThemeToggleProps) {
         "rounded-full transition-all duration-300",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         variant === "pill"
-          ? "h-9 px-3 gap-2 border border-border/80 bg-card/80 hover:bg-accent/80 hover:border-accent-foreground/30 shadow-2xs backdrop-blur-sm"
-          : "size-9 border border-border/80 bg-card/80 hover:bg-accent/80 hover:border-accent-foreground/30 shadow-2xs backdrop-blur-sm",
+          ? "h-11 sm:h-9 shrink-0 px-3 gap-2 border border-border/80 bg-card/80 hover:bg-accent/80 hover:border-accent-foreground/30 shadow-2xs backdrop-blur-sm"
+          : "size-11 sm:size-9 shrink-0 border border-border/80 bg-card/80 hover:bg-accent/80 hover:border-accent-foreground/30 shadow-2xs backdrop-blur-sm",
         className,
       )}
     >

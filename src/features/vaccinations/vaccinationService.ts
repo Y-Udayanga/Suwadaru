@@ -4,29 +4,23 @@
  * This module is an in-memory, Promise-based adapter that satisfies the
  * `VaccinationService` contract from `@/services/contracts`.
  *
- * BOUNDARY DOCUMENTATION:
- *   - Imports the contract interface (read-only; do NOT modify it here).
- *   - Imports mock data local to this feature folder.
- *   - Throws `AppError` with appropriate codes for expected failures.
- *   - No store state outside this module. The in-memory record array is
- *     module-level to simulate session persistence (Q-01: in-memory state).
- *
- * INTEGRATION IMPORTS NEEDED FROM FRONTEND A (when B1 lands):
- *   import type { VaccinationService } from "@/services/contracts"
- *   import { AppError } from "@/services/contracts"
- *   — Already imported below; no changes needed at that boundary.
- *
- * Replace the function bodies with Supabase calls to integrate B1 backend.
+ * SOURCING & CONSTRAINTS:
+ *   - Follows BRD §7.3, FR-020–FR-026, BR-01, BR-02, BR-03.
+ *   - Strictly non-future administered dates (BR-01, FR-026).
+ *   - Stored provenance is always "parent_reported"; never "health_worker_verified" (BR-02).
+ *   - No automated catch-up schedule generation (BR-03).
  */
 
 import type { VaccinationService } from "@/services/contracts"
 import { AppError } from "@/services/contracts"
 import type { AddReportedDoseInput, VaccinationRecord } from "@/types"
+import { demoChildren } from "@/data/mock"
 import {
   CHILD_DOBS,
   MOCK_VACCINATION_RECORDS,
   buildSchedule,
 } from "./mockData"
+import { isFutureDate } from "./calendarDate"
 
 // In-memory mutable copy so parent-reported doses persist during the session.
 const sessionRecords: Record<string, VaccinationRecord[]> = Object.fromEntries(
@@ -34,7 +28,7 @@ const sessionRecords: Record<string, VaccinationRecord[]> = Object.fromEntries(
 )
 
 /** Simulated async delay (ms). */
-const MOCK_DELAY = 400
+const MOCK_DELAY = 300
 
 function delay(ms: number = MOCK_DELAY): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -43,30 +37,55 @@ function delay(ms: number = MOCK_DELAY): Promise<void> {
 export const vaccinationService: VaccinationService = {
   async getSchedule(childId) {
     await delay()
-    const dob = CHILD_DOBS[childId]
+    let dob = CHILD_DOBS[childId]
     if (!dob) {
-      throw new AppError("not_found", `No schedule data for child "${childId}"`)
+      const match = demoChildren.find((c) => c.id === childId)
+      if (match) {
+        dob = match.dateOfBirth
+      }
+    }
+    if (!dob) {
+      throw new AppError(
+        "not_found",
+        `No schedule data could be generated for child "${childId}". Child not found.`,
+      )
     }
     return buildSchedule(childId, dob)
   },
 
   async getRecords(childId) {
     await delay()
-    // Unknown child still returns an empty array; do not throw — the child
-    // might exist without records (handled by the caller).
+    // Unknown child returns an empty array; caller handles display safely.
     return sessionRecords[childId] ?? []
   },
 
   async addReportedDose(input: AddReportedDoseInput) {
     await delay()
-    // Validate: date must not be in the future (BR-01).
     const today = new Date().toISOString().slice(0, 10)
-    if (input.administeredOn > today) {
+
+    // Validation: administered date required
+    if (!input.administeredOn || input.administeredOn.trim() === "") {
+      throw new AppError("validation", "Administered date is required.")
+    }
+
+    // Validation: date must not be in the future (BR-01, FR-026, T-09)
+    if (isFutureDate(input.administeredOn, today)) {
       throw new AppError(
         "validation",
         "Administered date may not be in the future.",
       )
     }
+
+    // Validation: check child DOB if available (cannot vaccinate before birth)
+    const childMatch = demoChildren.find((c) => c.id === input.childId)
+    const dob = CHILD_DOBS[input.childId] || childMatch?.dateOfBirth
+    if (dob && input.administeredOn < dob) {
+      throw new AppError(
+        "validation",
+        `Administered date cannot be before the child's birth date (${dob}).`,
+      )
+    }
+
     const record: VaccinationRecord = {
       id: `rec_${input.childId}_${input.vaccineCode}_${Date.now()}`,
       childId: input.childId,
@@ -75,8 +94,11 @@ export const vaccinationService: VaccinationService = {
       // BR-02: user-entered completion is always parent_reported; never verified.
       source: "parent_reported",
     }
+
     const existing = sessionRecords[input.childId] ?? []
-    sessionRecords[input.childId] = [...existing, record]
+    // Replace if same vaccineCode exists or append
+    const filtered = existing.filter((r) => r.vaccineCode !== input.vaccineCode)
+    sessionRecords[input.childId] = [...filtered, record]
     return record
   },
 }

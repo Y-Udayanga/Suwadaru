@@ -4,25 +4,31 @@
  * Route: /children/:childId/nutrition
  * Owner: Frontend B (feature/frontend-health)
  *
- * States covered (BRD §8, FR-040–044, T-11):
- *   loading      — resolving child
- *   error        — unknown childId (safe state, BR-08)
- *   first-use    — empty conversation with suggested prompts
- *   conversation — chat history with typing indicator
- *   refused      — safe referral for emergency-like queries
- *   retry        — service error with retry action
- *
- * Constraints:
- *   - Do NOT modify AppShell, router, shared types, or service contracts.
- *   - FR-042: all assistant messages are labeled as demo; no Gemini claim.
- *   - FR-043: emergency-like questions produce a professional-care referral.
- *   - BR-06: no diagnosis, medication, or treatment advice.
- *   - BR-07: no "Gemini replied" or "officially verified" claims.
+ * SAFETY & GOVERNANCE (BRD §7.5, §14, BR-06, BR-07, T-11, T-16):
+ *   - Friendly educational chat with child-age badge and suggested prompt chips.
+ *   - Text input with Enter to submit and Shift+Enter for newlines.
+ *   - Accessible conversation history with simulated typing indicator.
+ *   - Error/retry state for network/service interruptions.
+ *   - Prominent banner: "Demo responses — no Gemini API connected".
+ *   - Scripted educational guidance on Sri Lankan local foods, hygiene, and choking risks.
+ *   - Emergency and medication queries trigger urgent care referrals, not recipes.
  */
 
 import { useEffect, useReducer, useRef } from "react"
 import { Link } from "react-router"
-import { MessageCircle, Send, AlertTriangle, Info } from "lucide-react"
+import {
+  MessageCircle,
+  Send,
+  AlertTriangle,
+  Info,
+  Sparkles,
+  RotateCcw,
+  ShieldCheck,
+  ChevronRight,
+  ArrowLeft,
+  Bot,
+  User,
+} from "lucide-react"
 import type { ChildFeaturePageProps, ChatMessage } from "@/types"
 import type { Child } from "@/types"
 import { AppError } from "@/services/contracts"
@@ -30,10 +36,11 @@ import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { resolveChild, ageInMonths, formatAge } from "../childResolver"
 import { nutritionService } from "./nutritionService"
-import { SUGGESTED_PROMPTS } from "./mockData"
+import { SUGGESTED_NUTRITION_PROMPTS } from "./mockData"
+import { formatCalendarDate } from "../vaccinations/calendarDate"
 
 // ---------------------------------------------------------------------------
-// Types
+// Page State & Reducer
 // ---------------------------------------------------------------------------
 type PageState =
   | { phase: "loading" }
@@ -45,13 +52,14 @@ type PageState =
       input: string
       sending: boolean
       serviceError: string | null
+      lastAttemptedText: string | null
     }
 
 type Action =
   | { type: "LOADED"; child: Child }
   | { type: "ERROR"; message: string }
   | { type: "INPUT"; text: string }
-  | { type: "SEND_START"; userMessage: ChatMessage }
+  | { type: "SEND_START"; userMessage: ChatMessage; attemptedText: string }
   | { type: "SEND_DONE"; assistantMessage: ChatMessage }
   | { type: "SEND_ERROR"; error: string }
   | { type: "CLEAR_ERROR" }
@@ -66,11 +74,13 @@ function reducer(state: PageState, action: Action): PageState {
         input: "",
         sending: false,
         serviceError: null,
+        lastAttemptedText: null,
       }
     case "ERROR":
       return { phase: "error", message: action.message }
   }
   if (state.phase !== "ready") return state
+
   switch (action.type) {
     case "INPUT":
       return { ...state, input: action.text, serviceError: null }
@@ -81,15 +91,21 @@ function reducer(state: PageState, action: Action): PageState {
         input: "",
         sending: true,
         serviceError: null,
+        lastAttemptedText: action.attemptedText,
       }
     case "SEND_DONE":
       return {
         ...state,
         messages: [...state.messages, action.assistantMessage],
         sending: false,
+        lastAttemptedText: null,
       }
     case "SEND_ERROR":
-      return { ...state, sending: false, serviceError: action.error }
+      return {
+        ...state,
+        sending: false,
+        serviceError: action.error,
+      }
     case "CLEAR_ERROR":
       return { ...state, serviceError: null }
     default:
@@ -98,89 +114,8 @@ function reducer(state: PageState, action: Action): PageState {
 }
 
 // ---------------------------------------------------------------------------
-// Message bubble
+// Helper: create client user message
 // ---------------------------------------------------------------------------
-type BubbleProps = { message: ChatMessage; childName: string }
-
-function MessageBubble({ message, childName }: BubbleProps) {
-  const isUser = message.sender === "user"
-  const time = (() => {
-    try {
-      return new Intl.DateTimeFormat("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(message.createdAt))
-    } catch {
-      return ""
-    }
-  })()
-
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-1 max-w-[85%]",
-        isUser ? "self-end items-end" : "self-start items-start",
-      )}
-    >
-      <div
-        className={cn(
-          "rounded-2xl px-4 py-3 text-sm leading-relaxed",
-          isUser
-            ? "rounded-br-sm bg-primary text-primary-foreground"
-            : "rounded-bl-sm bg-[#E8F7F3] text-foreground border border-[#A7F3D0]",
-        )}
-        aria-label={
-          isUser
-            ? `You: ${message.text}`
-            : `SuwaDaru demo response: ${message.text}`
-        }
-      >
-        <p className="whitespace-pre-wrap break-words">{message.text}</p>
-      </div>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span>{isUser ? `${childName}'s caregiver` : "SuwaDaru"}</span>
-        {time && <span aria-hidden>·</span>}
-        {time && <time dateTime={message.createdAt}>{time}</time>}
-        {!isUser && message.isDemo && (
-          <>
-            <span aria-hidden>·</span>
-            <span className="italic text-[10px] text-muted-foreground/70">
-              Demo response
-            </span>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Typing indicator
-// ---------------------------------------------------------------------------
-function TypingIndicator() {
-  return (
-    <div
-      className="self-start flex items-center gap-1.5 rounded-2xl rounded-bl-sm bg-[#E8F7F3] border border-[#A7F3D0] px-4 py-3 text-xs text-muted-foreground"
-      aria-live="polite"
-      aria-label="SuwaDaru is composing a response"
-    >
-      <span
-        className="h-2 w-2 rounded-full bg-primary animate-bounce"
-        style={{ animationDelay: "0ms" }}
-      />
-      <span
-        className="h-2 w-2 rounded-full bg-primary animate-bounce"
-        style={{ animationDelay: "150ms" }}
-      />
-      <span
-        className="h-2 w-2 rounded-full bg-primary animate-bounce"
-        style={{ animationDelay: "300ms" }}
-      />
-      <span className="sr-only">Composing a response…</span>
-    </div>
-  )
-}
-
 function createClientMessage(text: string): ChatMessage {
   return {
     id: `msg_user_${Date.now()}`,
@@ -192,257 +127,414 @@ function createClientMessage(text: string): ChatMessage {
 }
 
 // ---------------------------------------------------------------------------
-// Main page component
+// Main Component
 // ---------------------------------------------------------------------------
 export function NutritionPage({ childId }: ChildFeaturePageProps) {
   const [state, dispatch] = useReducer(reducer, { phase: "loading" })
-  const inputRef = useRef<HTMLTextAreaElement>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const chatBottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Scroll chat to bottom when messages update.
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [state])
-
-  // Load child on mount.
+  // Load child profile on mount
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
         const child = await resolveChild(childId)
-        if (!cancelled) dispatch({ type: "LOADED", child })
+        if (!cancelled) {
+          dispatch({ type: "LOADED", child })
+        }
       } catch (err) {
         if (!cancelled) {
-          const message =
+          const msg =
             err instanceof AppError
               ? err.message
-              : "Unable to load child. Please try again."
-          dispatch({ type: "ERROR", message })
+              : "Unable to load child information for nutrition guide."
+          dispatch({ type: "ERROR", message: msg })
         }
       }
     }
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [childId])
 
-  // ── Loading ──────────────────────────────────────────────────────────────
+  const messageCount = state.phase === "ready" ? state.messages.length : 0
+  const isSending = state.phase === "ready" ? state.sending : false
+
+  // Scroll to bottom when new messages arrive or typing status changes
+  useEffect(() => {
+    if (state.phase === "ready") {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [state.phase, messageCount, isSending])
+
+
+  // ── Loading state ────────────────────────────────────────────────────────
   if (state.phase === "loading") {
     return (
-      <div className="flex max-w-2xl flex-col gap-4" aria-busy="true">
-        <div className="h-8 w-48 rounded-lg bg-muted animate-pulse" />
-        <div className="h-4 w-64 rounded-lg bg-muted animate-pulse" />
-        <div className="h-96 rounded-xl bg-muted animate-pulse" />
+      <div
+        className="flex min-w-0 flex-col gap-6 max-w-3xl animate-pulse"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="h-8 w-64 bg-muted rounded-md" />
+        <div className="h-24 w-full bg-muted rounded-xl" />
+        <div className="h-96 w-full bg-muted rounded-xl" />
+        <span className="sr-only">Loading nutrition guide…</span>
       </div>
     )
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────
+  // ── Error state (e.g. unknown child ID — BR-08, T-05) ────────────────────
   if (state.phase === "error") {
     return (
-      <div className="flex max-w-2xl flex-col gap-4">
-        <div className="rounded-xl border border-[#FECDCA] bg-[#FFF1F0] p-5 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-[#E27D72]" aria-hidden />
-            <h1 className="text-lg font-semibold">Child not found</h1>
+      <div
+        className="flex min-w-0 flex-col gap-4 max-w-lg rounded-xl border border-rose-200 bg-rose-50/50 p-6 dark:border-rose-900/50 dark:bg-rose-950/20"
+        role="alert"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300">
+            <AlertTriangle className="h-5 w-5" aria-hidden />
           </div>
-          <p className="text-sm text-muted-foreground">{state.message}</p>
+          <div>
+            <h2 className="text-base font-semibold text-rose-900 dark:text-rose-200">
+              Nutrition Guide Unavailable
+            </h2>
+            <p className="text-sm text-rose-700 dark:text-rose-300">{state.message}</p>
+          </div>
+        </div>
+        <div className="pt-2">
           <Link
             to={routes.dashboard}
-            className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
           >
-            Go to Dashboard
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Return to Dashboard
           </Link>
         </div>
       </div>
     )
   }
 
-  // ── Ready ────────────────────────────────────────────────────────────────
-  const { child, messages, input, sending, serviceError } = state
-  const ageMonths = ageInMonths(child.dateOfBirth)
-  const isEmpty = messages.length === 0
+  // ── Ready state ──────────────────────────────────────────────────────────
+  const { child, messages, input, sending, serviceError, lastAttemptedText } = state
+  const childAgeMonths = ageInMonths(child.dateOfBirth)
+  const isFirstUse = messages.length === 0
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || sending) return
+  async function handleSend(textToSend: string) {
+    const trimmed = textToSend.trim()
+    if (!trimmed || sending) return
 
-    const userMessage = createClientMessage(text)
-    dispatch({ type: "SEND_START", userMessage })
+    const userMessage = createClientMessage(trimmed)
+    dispatch({ type: "SEND_START", userMessage, attemptedText: trimmed })
 
     try {
       const assistantMessage = await nutritionService.getDemoResponse({
-        childId,
-        text: text.trim(),
+        childId: child.id,
+        text: trimmed,
       })
       dispatch({ type: "SEND_DONE", assistantMessage })
     } catch (err) {
       const msg =
         err instanceof AppError
           ? err.message
-          : "Unable to get a response. Please try again."
+          : "Unable to retrieve simulated response. Please try again."
       dispatch({ type: "SEND_ERROR", error: msg })
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Enter without Shift submits; Shift+Enter creates a new line
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      sendMessage(input)
+      handleSend(input)
+    }
+  }
+
+  function handleRetry() {
+    if (lastAttemptedText) {
+      handleSend(lastAttemptedText)
     }
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 max-w-2xl">
-      {/* Page header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5 text-primary" aria-hidden />
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Nutrition — {child.name}
-          </h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {formatAge(ageMonths)} old · Educational nutrition guide (scripted demo)
-        </p>
-      </div>
-
-      {/* Disclaimer banner (FR-042, BR-06) */}
+    <div className="flex min-w-0 flex-col gap-5 max-w-3xl pb-16">
+      {/* ── Mandatory Disclaimer Banner (FR-042, BR-06, BR-07) ── */}
       <aside
-        aria-label="Demo disclaimer"
-        className="flex items-start gap-2 rounded-xl border border-border bg-[#E8F7F3] px-4 py-3 text-xs"
+        className="rounded-xl border border-teal-200 bg-teal-50/70 p-4 text-teal-950 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-100 shadow-xs"
+        aria-label="Demo Disclaimer Notice"
       >
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <span className="text-muted-foreground">
-          <strong className="text-foreground">Demo only.</strong> Responses are
-          scripted educational examples. No request is sent to Gemini or any AI
-          service. SuwaDaru does not provide medical advice, diagnosis, or
-          treatment. For health concerns, always consult your PHM or doctor.
-        </span>
+        <div className="flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white mt-0.5">
+            <ShieldCheck className="h-4 w-4" aria-hidden />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm tracking-tight text-teal-950 dark:text-teal-100">
+                Demo responses — no Gemini API connected
+              </span>
+              <span className="rounded-md bg-teal-100 dark:bg-teal-900/80 px-2 py-0.5 text-xs font-mono font-medium text-teal-800 dark:text-teal-200">
+                FR-042 scripted demo
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-teal-900/90 dark:text-teal-200/90">
+              This interactive chat provides educational food and hygiene guidelines for Sri Lankan caregivers. <strong>It does not provide individual clinical diagnoses, drug dosages, or therapeutic prescriptions.</strong> For medical emergencies or acute illness, seek urgent hospital care immediately.
+            </p>
+          </div>
+        </div>
       </aside>
 
-      {/* Chat window */}
-      <section
-        aria-label="Nutrition chat"
-        className="rounded-xl border border-border bg-card overflow-hidden flex flex-col"
-        style={{ minHeight: "400px" }}
-      >
-        {/* Messages area */}
+      {/* ── Header & Child Context Bar ── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-primary font-medium text-sm mb-1">
+              <MessageCircle className="h-4 w-4" aria-hidden />
+              <span>Pediatric Nutrition & Feeding Companion</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Food & Feeding Guide
+            </h1>
+          </div>
+          <Link
+            to={routes.child(child.id)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors self-start sm:self-auto"
+          >
+            <span>Back to {child.name}&apos;s profile</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {/* Child Context Banner with Child-Age Badge */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 font-bold text-base">
+              {child.name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-foreground">{child.name}</h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  Age: {formatAge(childAgeMonths)} ({childAgeMonths} mo)
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Born: <span className="font-medium text-foreground">{formatCalendarDate(child.dateOfBirth)}</span> · Educational complementary feeding recommendations
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
+            <span>Clinic: <strong>{child.clinicName || "Local MOH Area"}</strong></span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Chat Area ── */}
+      <div className="flex flex-col rounded-xl border bg-card shadow-xs overflow-hidden h-[540px]">
+        {/* Chat History Container */}
         <div
-          className="flex-1 overflow-y-auto p-4 flex flex-col gap-3"
-          style={{ minHeight: "300px", maxHeight: "480px" }}
+          className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
+          role="log"
+          aria-label={`Nutrition conversation history for ${child.name}`}
           aria-live="polite"
-          aria-atomic="false"
-          aria-label="Conversation"
         >
-          {/* First-use / empty state */}
-          {isEmpty && !sending && (
-            <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <MessageCircle className="h-10 w-10 text-muted-foreground/30" aria-hidden />
-              <div>
-                <p className="font-semibold text-sm">Ask a nutrition question</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Try one of the example questions below, or type your own.
+          {/* First-use / Empty State Greeting (FR-040) */}
+          {isFirstUse && (
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center space-y-3 my-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Sparkles className="h-6 w-6" aria-hidden />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-sm font-bold text-foreground">
+                  Welcome to {child.name}&apos;s Nutrition Companion
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Ask about age-appropriate Sri Lankan foods (red rice congee, dhal, wattakka, gotukola, boneless fish), food texture progression, water safety, and choking hazard prevention.
                 </p>
               </div>
-              {/* Child age context (FR-040) */}
-              <div className="rounded-lg bg-[#E8F7F3] border border-[#A7F3D0] px-4 py-2 text-xs text-[#0F766E]">
-                Context: {child.name}, {formatAge(ageMonths)} old
-              </div>
+              <p className="text-[11px] text-muted-foreground italic">
+                Choose a suggested topic below or type your question in the box below.
+              </p>
             </div>
           )}
 
           {/* Messages */}
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} childName={child.name} />
-          ))}
+          {messages.map((msg) => {
+            const isUser = msg.sender === "user"
+            return (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex items-start gap-2.5 max-w-[85%]",
+                  isUser ? "ml-auto flex-row-reverse" : "mr-auto",
+                )}
+              >
+                {/* Avatar Icon */}
+                <div
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                    isUser
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-teal-700 text-white",
+                  )}
+                  aria-hidden
+                >
+                  {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                </div>
 
-          {/* Typing indicator */}
-          {sending && <TypingIndicator />}
+                {/* Message Bubble */}
+                <div className="space-y-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-2xs whitespace-pre-line",
+                      isUser
+                        ? "rounded-tr-xs bg-primary text-primary-foreground"
+                        : "rounded-tl-xs bg-muted/60 text-foreground border border-border/70",
+                    )}
+                  >
+                    {msg.text}
+                  </div>
+                  <div
+                    className={cn(
+                      "flex items-center gap-1.5 text-[10px] text-muted-foreground px-1",
+                      isUser ? "justify-end" : "justify-start",
+                    )}
+                  >
+                    <span>{isUser ? `${child.name}'s caregiver` : "SuwaDaru Simulator"}</span>
+                    <span>·</span>
+                    <time dateTime={msg.createdAt}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </time>
+                    {!isUser && (
+                      <>
+                        <span>·</span>
+                        <span className="font-mono text-muted-foreground/80">Demo</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
 
-          {/* Service error */}
+          {/* Simulated Typing Indicator */}
+          {sending && (
+            <div
+              className="flex items-center gap-2.5 text-xs text-muted-foreground animate-in fade-in"
+              role="status"
+              aria-label="SuwaDaru is preparing an educational response"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 text-white text-xs">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="rounded-2xl rounded-tl-xs bg-muted/60 border border-border/70 px-4 py-2.5 flex items-center gap-1.5 shadow-2xs">
+                <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="text-xs text-muted-foreground ml-1">Composing guidance…</span>
+              </div>
+            </div>
+          )}
+
+          {/* Service Error / Retry State Banner */}
           {serviceError && (
-            <div className="self-start flex items-center gap-2 rounded-xl border border-[#FECDCA] bg-[#FFF1F0] px-4 py-3 text-xs text-[#B91C1C]">
-              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-              <span>{serviceError}</span>
+            <div
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200 flex items-center justify-between gap-3 animate-in fade-in"
+              role="alert"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" aria-hidden />
+                <span>{serviceError}</span>
+              </div>
               <button
                 type="button"
-                onClick={() => dispatch({ type: "CLEAR_ERROR" })}
-                className="ml-1 underline hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded"
+                onClick={handleRetry}
+                className="inline-flex items-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors"
               >
-                Dismiss
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                <span>Retry</span>
               </button>
             </div>
           )}
 
-          <div ref={bottomRef} aria-hidden />
+          <div ref={chatBottomRef} />
         </div>
 
-        {/* Suggested prompts (first-use) */}
-        {isEmpty && (
-          <div className="border-t border-border px-4 py-3 overflow-x-auto">
-            <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
-            <ul className="flex flex-wrap gap-2 m-0 p-0 list-none">
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <li key={prompt}>
-                  <button
-                    type="button"
-                    onClick={() => sendMessage(prompt)}
-                    disabled={sending}
-                    className={cn(
-                      "rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium",
-                      "hover:bg-[#E8F7F3] hover:border-[#A7F3D0] hover:text-primary",
-                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                      "transition-colors disabled:opacity-50 text-left",
-                    )}
-                  >
-                    {prompt}
-                  </button>
-                </li>
-              ))}
-            </ul>
+        {/* Suggestion Chips */}
+        <div className="border-t bg-muted/20 px-4 py-2.5 overflow-x-auto">
+          <div className="flex items-center gap-1.5 whitespace-nowrap" role="group" aria-label="Suggested nutrition questions">
+            <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1 mr-1 shrink-0">
+              <Sparkles className="h-3 w-3 text-primary" aria-hidden />
+              Suggestions:
+            </span>
+            {SUGGESTED_NUTRITION_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => handleSend(prompt)}
+                disabled={sending}
+                className="rounded-full border bg-background px-3 py-1 text-xs text-foreground hover:bg-primary/10 hover:border-primary transition-colors disabled:opacity-50 shrink-0 shadow-2xs"
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
-        )}
-
-        {/* Input bar */}
-        <div className="border-t border-border p-3 flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            id="nutrition-input"
-            value={input}
-            onChange={(e) => dispatch({ type: "INPUT", text: e.target.value })}
-            onKeyDown={handleKeyDown}
-            disabled={sending}
-            placeholder="Ask about foods, feeding, or nutrition…"
-            rows={2}
-            maxLength={500}
-            className={cn(
-              "flex-1 min-w-0 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm",
-              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              "disabled:opacity-50 placeholder:text-muted-foreground",
-            )}
-            aria-label="Type a nutrition question"
-          />
-          <button
-            type="button"
-            onClick={() => sendMessage(input)}
-            disabled={sending || !input.trim()}
-            className={cn(
-              "shrink-0 rounded-lg bg-primary p-2.5 text-primary-foreground",
-              "hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              "disabled:opacity-40 transition-opacity",
-            )}
-            aria-label="Send message"
-          >
-            <Send className="h-4 w-4" aria-hidden />
-          </button>
         </div>
-      </section>
 
-      {/* Footer disclaimer */}
-      <footer className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-        <strong>Fictional demonstration only.</strong> All responses are
-        pre-written educational examples. No message is sent to Gemini or any
-        external service. For real dietary advice, consult your Public Health
-        Midwife (PHM) or a qualified nutritionist.
+        {/* Message Input Form */}
+        <div className="border-t p-3 sm:p-4 bg-background">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSend(input)
+            }}
+            className="flex items-end gap-2"
+          >
+            <div className="relative flex-1">
+              <label htmlFor="nutritionQueryInput" className="sr-only">
+                Ask a pediatric nutrition or complementary feeding question
+              </label>
+              <textarea
+                id="nutritionQueryInput"
+                ref={textareaRef}
+                rows={1}
+                value={input}
+                onChange={(e) => dispatch({ type: "INPUT", text: e.target.value })}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask about foods, dhal, fish, textures, or water safety… (Enter to send, Shift+Enter for new line)"
+                className="w-full resize-none rounded-xl border bg-background px-3.5 py-2.5 text-xs sm:text-sm text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary max-h-32 min-h-[42px]"
+                disabled={sending}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={sending || !input.trim()}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 disabled:opacity-40 transition-opacity"
+              aria-label="Send nutrition query"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1.5 px-1">
+            <span>Press <kbd className="font-mono bg-muted px-1 rounded">Enter</kbd> to submit · <kbd className="font-mono bg-muted px-1 rounded">Shift + Enter</kbd> for newline</span>
+            <span>Simulated demo</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Guidance Footer Notice ── */}
+      <footer className="rounded-xl border border-muted/80 bg-muted/30 p-4 text-xs text-muted-foreground space-y-1.5">
+        <div className="flex items-center gap-1.5 text-foreground font-semibold">
+          <Info className="h-4 w-4 text-primary shrink-0" aria-hidden />
+          <span>Safety & Medical Disclaimer (BR-06 / BR-07)</span>
+        </div>
+        <p className="leading-relaxed">
+          SuwaDaru nutrition responses are based on public health educational frameworks. If your child exhibits severe loss of appetite, persistent vomiting, chronic diarrhea, or unexpected weight faltering, please schedule an appointment at your clinic or consult your Public Health Midwife (PHM).
+        </p>
       </footer>
     </div>
   )

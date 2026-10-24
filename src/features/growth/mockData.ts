@@ -1,25 +1,26 @@
 /**
  * Fictional growth mock data for Frontend B health pages.
  *
- * All measurements are synthetic demo records. They are explicitly labeled
- * "demo" and do not constitute a clinical assessment. Clinical status is
- * hard-coded `not_assessed` as required by BRD FR-035 and BR-04/BR-05.
- *
- * Reference curves: provenance is `synthetic_demo` because official WHO
- * numerical tables have not been verified and pinned for F0.
- * Prominent disclaimer is required (BRD T-10).
- *
- * INTEGRATION NOTE FOR FRONTEND A:
- *   When `growthService` from `@/services/contracts` is wired, replace
- *   the mock adapter in `./growthService.ts` with the real import.
+ * SAFETY & GOVERNANCE CONSTRAINTS (BRD §7.4, §14, BR-04, BR-05, BR-07, T-10):
+ *   - Reference curves are explicitly labeled "synthetic_demo".
+ *   - Mandatory prominent banner: "Illustrative only — not WHO clinical reference data".
+ *   - Clinical status is always "not_assessed".
+ *   - NO medical categorization: Never label a child "healthy", "malnourished",
+ *     "stunted", or "underweight" from fictional or synthetic calculations.
+ *   - Values must not be invented to visually match or diagnose a real child.
  */
 
 import type { GrowthMeasurement, GrowthReferenceSeries } from "@/types"
 
+export const GROWTH_DISCLAIMER_TEXT =
+  "Illustrative only — not WHO clinical reference data"
+
+export const CLINICAL_ASSESSMENT_NOTICE =
+  "Clinical status is not assessed. No z-score or diagnosis is derived from demonstration data."
+
 // ---------------------------------------------------------------------------
 // Fictional growth measurements — Nethmi (female, DOB 2025-04-15).
-// Source: demo. Not verified. Age-appropriate ranges are plausible but
-// must not be interpreted as clinically meaningful without WHO validation.
+// Source: demo. 5 historical points demonstrating growth trend.
 // ---------------------------------------------------------------------------
 export const NETHMI_MEASUREMENTS: GrowthMeasurement[] = [
   {
@@ -71,6 +72,7 @@ export const NETHMI_MEASUREMENTS: GrowthMeasurement[] = [
 
 // ---------------------------------------------------------------------------
 // Fictional growth measurements — Kavindu (male, DOB 2026-02-28).
+// Source: demo. 4 historical points demonstrating isolated measurements.
 // ---------------------------------------------------------------------------
 export const KAVINDU_MEASUREMENTS: GrowthMeasurement[] = [
   {
@@ -117,17 +119,14 @@ export const MOCK_MEASUREMENTS: Record<string, GrowthMeasurement[]> = {
 
 // ---------------------------------------------------------------------------
 // Synthetic reference series.
-// `provenance: "synthetic_demo"` — these are NOT official WHO values.
-// They are illustrative curves only. A clinical z-score is not calculated
-// and `clinicalStatus` remains `"not_assessed"` as required by BRD FR-035.
+// `provenance: "synthetic_demo"` — strictly illustrative curves only.
 // ---------------------------------------------------------------------------
 const SYNTHETIC_FEMALE_SERIES: GrowthReferenceSeries = {
-  childId: "", // stamped at call time
+  childId: "",
   indicator: "weight_for_age",
   sex: "female",
   provenance: "synthetic_demo",
-  sourceLabel:
-    "DEMONSTRATION ONLY — not official WHO data. Do not use for clinical assessment.",
+  sourceLabel: GROWTH_DISCLAIMER_TEXT,
   sourceVersion: "synthetic-demo-v1",
   clinicalStatus: "not_assessed",
   points: [
@@ -152,8 +151,7 @@ const SYNTHETIC_MALE_SERIES: GrowthReferenceSeries = {
   indicator: "weight_for_age",
   sex: "male",
   provenance: "synthetic_demo",
-  sourceLabel:
-    "DEMONSTRATION ONLY — not official WHO data. Do not use for clinical assessment.",
+  sourceLabel: GROWTH_DISCLAIMER_TEXT,
   sourceVersion: "synthetic-demo-v1",
   clinicalStatus: "not_assessed",
   points: [

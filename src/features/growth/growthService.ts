@@ -3,45 +3,35 @@
  *
  * Promise-based adapter satisfying `GrowthService` from `@/services/contracts`.
  *
- * BOUNDARY DOCUMENTATION:
- *   - Imports the contract interface (read-only; do NOT modify it here).
- *   - Reference series provenance is always `synthetic_demo` until official
- *     WHO tables are verified and pinned (BRD FR-031, T-10).
- *   - `clinicalStatus` is hard-coded `"not_assessed"` (FR-035, BR-04, BR-05).
- *
- * INTEGRATION IMPORTS NEEDED FROM FRONTEND A (when B1 lands):
- *   import type { GrowthService } from "@/services/contracts"
- *   import { AppError } from "@/services/contracts"
- *   — Already imported below.
- *
- * CHILD SEX LOOKUP:
- *   This adapter needs the child's sex to pick the reference series. Currently
- *   it reads from a local map of demo children (no circular dependency on
- *   Frontend A's childService). When the real childService lands, replace the
- *   local lookup with: `const child = await childService.get(childId)`.
+ * SAFETY & GOVERNANCE:
+ *   - Strictly non-future measurement dates (BR-01, FR-033).
+ *   - Strictly positive numeric weight in kilograms (FR-033, T-09).
+ *   - Measurement provenance defaults to "parent_reported" (FR-034).
+ *   - Clinical status is always "not_assessed" (FR-035, BR-04, BR-05).
+ *   - Separate child session isolation (Nethmi vs Kavindu).
  */
 
 import type { GrowthService } from "@/services/contracts"
 import { AppError } from "@/services/contracts"
 import type { AddMeasurementInput, GrowthMeasurement } from "@/types"
+import { demoChildren } from "@/data/mock"
 import {
   MOCK_MEASUREMENTS,
   getSyntheticReferenceSeries,
 } from "./mockData"
 
-// Local lookup for demo child sex (avoids coupling to childService).
-// Replace with childService.get(childId).sex when B1 is integrated.
 const DEMO_CHILD_SEX: Record<string, "male" | "female"> = {
   child_nethmi_demo: "female",
   child_kavindu_demo: "male",
 }
 
+// In-memory isolated copy keyed by childId
 const sessionMeasurements: Record<string, GrowthMeasurement[]> =
   Object.fromEntries(
     Object.entries(MOCK_MEASUREMENTS).map(([k, v]) => [k, [...v]]),
   )
 
-const MOCK_DELAY = 450
+const MOCK_DELAY = 300
 
 function delay(ms = MOCK_DELAY): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -50,45 +40,68 @@ function delay(ms = MOCK_DELAY): Promise<void> {
 export const growthService: GrowthService = {
   async list(childId) {
     await delay()
-    // Unknown child returns empty array; component decides whether to show CTA.
     return sessionMeasurements[childId] ?? []
   },
 
   async addMeasurement(input: AddMeasurementInput) {
     await delay()
-    // Validate: date must not be in the future (BR-01, FR-033).
     const today = new Date().toISOString().slice(0, 10)
+
+    // Validate: date required and not in future (BR-01, FR-033)
+    if (!input.measuredOn || input.measuredOn.trim() === "") {
+      throw new AppError("validation", "Measurement date is required.")
+    }
     if (input.measuredOn > today) {
       throw new AppError(
         "validation",
         "Measurement date may not be in the future.",
       )
     }
-    // Validate: weight must be positive when provided (FR-033, T-09).
-    if (input.weightKg !== undefined && input.weightKg <= 0) {
+
+    // Validate: date cannot be before child DOB
+    const match = demoChildren.find((c) => c.id === input.childId)
+    if (match && input.measuredOn < match.dateOfBirth) {
       throw new AppError(
         "validation",
-        "Weight must be a positive number in kilograms.",
+        `Measurement date cannot be before the child's birth date (${match.dateOfBirth}).`,
       )
     }
+
+    // Validate: weight must be positive numeric (FR-033, T-09)
+    if (
+      input.weightKg === undefined ||
+      input.weightKg === null ||
+      isNaN(input.weightKg) ||
+      input.weightKg <= 0
+    ) {
+      throw new AppError(
+        "validation",
+        "Weight must be a positive number greater than 0 kg.",
+      )
+    }
+
+    // Validate: optional length/height must be positive
     if (
       input.lengthHeightCm !== undefined &&
-      input.lengthHeightCm <= 0
+      (isNaN(input.lengthHeightCm) || input.lengthHeightCm <= 0)
     ) {
       throw new AppError(
         "validation",
         "Length/height must be a positive number in centimetres.",
       )
     }
+
+    // Validate: optional head circumference must be positive
     if (
       input.headCircumferenceCm !== undefined &&
-      input.headCircumferenceCm <= 0
+      (isNaN(input.headCircumferenceCm) || input.headCircumferenceCm <= 0)
     ) {
       throw new AppError(
         "validation",
         "Head circumference must be a positive number in centimetres.",
       )
     }
+
     const measurement: GrowthMeasurement = {
       id: `gm_${input.childId}_${Date.now()}`,
       childId: input.childId,
@@ -98,6 +111,7 @@ export const growthService: GrowthService = {
       headCircumferenceCm: input.headCircumferenceCm,
       source: "parent_reported",
     }
+
     const existing = sessionMeasurements[input.childId] ?? []
     sessionMeasurements[input.childId] = [...existing, measurement].sort(
       (a, b) => a.measuredOn.localeCompare(b.measuredOn),
@@ -107,9 +121,11 @@ export const growthService: GrowthService = {
 
   async getReferenceSeries(childId) {
     await delay()
-    const sex = DEMO_CHILD_SEX[childId]
-    // Unknown child defaults to a female reference; this is arbitrary for
-    // demo purposes and will be replaced when childService provides sex.
+    let sex = DEMO_CHILD_SEX[childId]
+    if (!sex) {
+      const match = demoChildren.find((c) => c.id === childId)
+      if (match) sex = match.sex
+    }
     return getSyntheticReferenceSeries(childId, sex ?? "female")
   },
 }

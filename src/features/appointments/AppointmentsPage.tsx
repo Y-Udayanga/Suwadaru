@@ -4,19 +4,15 @@
  * Route: /children/:childId/appointments
  * Owner: Frontend B (feature/frontend-health)
  *
- * States covered (BRD §8, FR-050–052, T-12):
- *   loading   — resolving child + appointments
- *   error     — unknown childId (safe state, BR-08)
- *   list      — tabbed upcoming/past view
- *   add/edit  — inline appointment form
- *   empty     — no appointments; CTA to create one
- *   completed — shows updated list with reminder preview labeled "not sent"
- *
- * Constraints:
- *   - Do NOT modify AppShell, router, shared types, or service contracts.
- *   - FR-051: scheduledAt is a date-time with offset; NOT the same as an EPI due date.
- *   - FR-052: reminder preview explicitly labeled "not sent" (BR-07).
- *   - Confirmation dialog for cancel/delete actions.
+ * Requirements (BRD §7.6, §9, §10, §14, T-12):
+ *   - Responsive upcoming / past clinic visit list.
+ *   - Create, edit, cancel, complete lifecycle.
+ *   - Inputs: selected childId, clinicName, scheduled local date+time with clear formatting,
+ *     purpose, status.
+ *   - Keep clinic appointment strictly separate from scheduled EPI milestones (FR-051, BR-02).
+ *   - Appointment reminder preview panel with prominent "Not sent" label (no real push/SMS, BR-07, FR-052).
+ *   - Empty, invalid-date, and user-confirmation states.
+ *   - Consumes `appointmentService` adapter (no direct fixture imports in component).
  */
 
 import { useEffect, useReducer, useRef } from "react"
@@ -31,6 +27,8 @@ import {
   Edit2,
   Info,
   Bell,
+  Building2,
+  CalendarCheck2,
 } from "lucide-react"
 import type { ChildFeaturePageProps, ClinicAppointment } from "@/types"
 import type { Child } from "@/types"
@@ -39,17 +37,23 @@ import { cn } from "@/lib/utils"
 import { routes } from "@/app/routes"
 import { resolveChild, ageInMonths, formatAge } from "../childResolver"
 import { appointmentService } from "./appointmentService"
+import {
+  apptToIsoDateTime,
+  isoDateTimeToLocal,
+  formatAppointmentDateTime,
+} from "./appointmentHelpers"
 
 // ---------------------------------------------------------------------------
-// Types
+// Types & State
 // ---------------------------------------------------------------------------
 type AppointmentTab = "upcoming" | "past"
 
-type AppointmentFormState = {
-  scheduledDate: string // YYYY-MM-DD (local, combined with time below)
+export type AppointmentFormState = {
+  scheduledDate: string // YYYY-MM-DD
   scheduledTime: string // HH:MM
   clinicName: string
   purpose: string
+  status: "scheduled" | "completed"
   errors: Record<string, string>
   submitting: boolean
   editingId: string | null
@@ -66,6 +70,7 @@ type PageState =
       showForm: boolean
       form: AppointmentFormState
       confirmCancelId: string | null
+      confirmCompleteId: string | null
     }
 
 type Action =
@@ -80,38 +85,26 @@ type Action =
   | { type: "SUBMIT_START" }
   | { type: "SUBMIT_DONE"; appointment: ClinicAppointment }
   | { type: "CONFIRM_CANCEL"; appointmentId: string }
+  | { type: "CONFIRM_COMPLETE"; appointmentId: string }
   | { type: "DISMISS_CONFIRM" }
-  | { type: "CANCEL_DONE"; appointment: ClinicAppointment }
+  | { type: "MUTATION_DONE"; appointment: ClinicAppointment }
 
 const initialForm: AppointmentFormState = {
   scheduledDate: new Date().toISOString().slice(0, 10),
   scheduledTime: "09:00",
   clinicName: "",
   purpose: "",
+  status: "scheduled",
   errors: {},
   submitting: false,
   editingId: null,
 }
 
-function apptToIsoDateTime(date: string, time: string): string {
-  // Combines date + time and appends Sri Lanka offset (+05:30).
-  return `${date}T${time}:00+05:30`
+function isUpcoming(appointment: ClinicAppointment): boolean {
+  // Active scheduled visits remain in upcoming tab for caregiver visibility
+  return appointment.status === "scheduled"
 }
 
-function isoDateTimeToLocal(isoDateTime: string): { date: string; time: string } {
-  try {
-    const d = new Date(isoDateTime)
-    const date = d.toLocaleDateString("en-CA", { timeZone: "Asia/Colombo" }) // YYYY-MM-DD
-    const time = d.toLocaleTimeString("en-GB", {
-      timeZone: "Asia/Colombo",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    return { date, time }
-  } catch {
-    return { date: isoDateTime.slice(0, 10), time: "09:00" }
-  }
-}
 
 function reducer(state: PageState, action: Action): PageState {
   switch (action.type) {
@@ -124,6 +117,7 @@ function reducer(state: PageState, action: Action): PageState {
         showForm: false,
         form: { ...initialForm },
         confirmCancelId: null,
+        confirmCompleteId: null,
       }
     case "ERROR":
       return { phase: "error", message: action.message }
@@ -141,6 +135,7 @@ function reducer(state: PageState, action: Action): PageState {
           scheduledDate: new Date().toISOString().slice(0, 10),
         },
         confirmCancelId: null,
+        confirmCompleteId: null,
       }
     case "SHOW_EDIT_FORM": {
       const { date, time } = isoDateTimeToLocal(action.appointment.scheduledAt)
@@ -152,11 +147,13 @@ function reducer(state: PageState, action: Action): PageState {
           scheduledTime: time,
           clinicName: action.appointment.clinicName,
           purpose: action.appointment.purpose ?? "",
+          status: action.appointment.status === "completed" ? "completed" : "scheduled",
           errors: {},
           submitting: false,
           editingId: action.appointment.id,
         },
         confirmCancelId: null,
+        confirmCompleteId: null,
       }
     }
     case "HIDE_FORM":
@@ -184,16 +181,27 @@ function reducer(state: PageState, action: Action): PageState {
         showForm: false,
       }
     case "CONFIRM_CANCEL":
-      return { ...state, confirmCancelId: action.appointmentId }
+      return {
+        ...state,
+        confirmCancelId: action.appointmentId,
+        confirmCompleteId: null,
+      }
+    case "CONFIRM_COMPLETE":
+      return {
+        ...state,
+        confirmCompleteId: action.appointmentId,
+        confirmCancelId: null,
+      }
     case "DISMISS_CONFIRM":
-      return { ...state, confirmCancelId: null }
-    case "CANCEL_DONE":
+      return { ...state, confirmCancelId: null, confirmCompleteId: null }
+    case "MUTATION_DONE":
       return {
         ...state,
         appointments: state.appointments.map((a) =>
           a.id === action.appointment.id ? action.appointment : a,
         ),
         confirmCancelId: null,
+        confirmCompleteId: null,
       }
     default:
       return state
@@ -201,30 +209,8 @@ function reducer(state: PageState, action: Action): PageState {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Status Badge Component
 // ---------------------------------------------------------------------------
-function formatDateTime(isoDateTime: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Asia/Colombo",
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(isoDateTime))
-  } catch {
-    return isoDateTime
-  }
-}
-
-function isUpcoming(appointment: ClinicAppointment): boolean {
-  if (appointment.status === "cancelled") return false
-  if (appointment.status === "completed") return false
-  return new Date(appointment.scheduledAt) >= new Date()
-}
-
 function StatusBadge({ status }: { status: ClinicAppointment["status"] }) {
   const map: Record<
     ClinicAppointment["status"],
@@ -250,7 +236,7 @@ function StatusBadge({ status }: { status: ClinicAppointment["status"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
         cls,
       )}
     >
@@ -261,110 +247,211 @@ function StatusBadge({ status }: { status: ClinicAppointment["status"] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Appointment card
+// Appointment Card Component
 // ---------------------------------------------------------------------------
 type AppointmentCardProps = {
   appointment: ClinicAppointment
+  childName: string
   onEdit: (a: ClinicAppointment) => void
   onCancel: (id: string) => void
+  onComplete: (id: string) => void
   confirmCancelId: string | null
+  confirmCompleteId: string | null
   onDismissConfirm: () => void
   onConfirmCancel: () => void
-  cancelling: boolean
+  onConfirmComplete: () => void
+  processing: boolean
 }
 
 function AppointmentCard({
   appointment,
+  childName,
   onEdit,
   onCancel,
+  onComplete,
   confirmCancelId,
+  confirmCompleteId,
   onDismissConfirm,
   onConfirmCancel,
-  cancelling,
+  onConfirmComplete,
+  processing,
 }: AppointmentCardProps) {
   const isEditable = appointment.status === "scheduled"
-  const showConfirm = confirmCancelId === appointment.id
+  const showCancelConfirm = confirmCancelId === appointment.id
+  const showCompleteConfirm = confirmCompleteId === appointment.id
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <h3 className="font-semibold text-sm truncate">
-            {appointment.clinicName}
-          </h3>
+    <article
+      data-testid={`appointment-card-${appointment.id}`}
+      className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3.5 transition-shadow hover:shadow-xs"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex flex-col gap-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-base text-foreground tracking-tight flex items-center gap-1.5">
+              <Building2 className="h-4 w-4 text-primary shrink-0" aria-hidden />
+              {appointment.clinicName}
+            </h3>
+            <span
+              className="inline-flex items-center rounded-md bg-teal-50 border border-teal-200 px-2 py-0.5 text-[11px] font-medium text-teal-800"
+              title="Physical facility visit — distinct from national immunization milestone due date"
+            >
+              Clinic Visit (Physical Facility)
+            </span>
+          </div>
           <time
             dateTime={appointment.scheduledAt}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground flex items-center gap-1"
           >
-            {formatDateTime(appointment.scheduledAt)}
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            {formatAppointmentDateTime(appointment.scheduledAt)}
           </time>
         </div>
         <StatusBadge status={appointment.status} />
       </div>
 
-      {appointment.purpose && (
-        <p className="text-sm text-muted-foreground">{appointment.purpose}</p>
-      )}
-
-      {/* Reminder preview (FR-052, BR-07) */}
-      {appointment.status === "scheduled" && (
-        <p className="flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-800">
-          <Bell className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>
-            <strong>Reminder preview (not sent):</strong> SuwaDaru does not
-            send SMS or push notifications.
-          </span>
+      {/* Purpose */}
+      {appointment.purpose ? (
+        <p className="text-sm text-foreground/90 bg-muted/30 rounded-lg p-2.5 border border-border/50">
+          <strong className="text-xs uppercase text-muted-foreground block mb-0.5 tracking-wider">
+            Visit Purpose
+          </strong>
+          {appointment.purpose}
+        </p>
+      ) : (
+        <p className="text-xs italic text-muted-foreground">
+          No specific clinical purpose specified.
         </p>
       )}
 
+      {/* Boundary distinction callout (FR-051) */}
+      <p className="text-[11px] text-muted-foreground bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1">
+        ℹ️ <strong>Separate from national EPI milestone:</strong> This scheduled appointment date is for your physical clinic consultation and is independent of the calendar-age vaccine due dates.
+      </p>
+
+      {/* Reminder preview panel with prominent 'Not sent' label (FR-052, BR-07) */}
+      {appointment.status === "scheduled" && (
+        <aside
+          aria-label="Appointment reminder preview"
+          className="rounded-lg border border-amber-300 bg-amber-50/90 p-3 flex flex-col gap-1.5"
+        >
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="font-semibold text-xs text-amber-900 flex items-center gap-1.5">
+              <Bell className="h-3.5 w-3.5 text-amber-700" aria-hidden />
+              Appointment Reminder Preview
+            </span>
+            <span
+              data-testid="reminder-not-sent-badge"
+              className="rounded-md bg-amber-200/90 border border-amber-400 px-2 py-0.5 text-[10px] font-bold text-amber-950 uppercase tracking-wider"
+            >
+              Not sent
+            </span>
+          </div>
+          <p className="text-xs text-amber-900 font-mono bg-white/70 rounded p-2 border border-amber-200/80">
+            "Reminder for {childName}: Clinic visit scheduled at {appointment.clinicName} on {formatAppointmentDateTime(appointment.scheduledAt)}. Please bring child's physical CHDR book and clinic card."
+          </p>
+          <p className="text-[11px] text-amber-800">
+            SuwaDaru shows reminder previews only — no SMS, WhatsApp, or push notification is ever sent.
+          </p>
+        </aside>
+      )}
+
       {/* Actions */}
-      {isEditable && !showConfirm && (
-        <div className="flex gap-2 flex-wrap">
+      {isEditable && !showCancelConfirm && !showCompleteConfirm && (
+        <div className="flex gap-2 flex-wrap pt-1 border-t border-border/40">
+          <button
+            type="button"
+            onClick={() => onComplete(appointment.id)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-800 hover:bg-green-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5 text-green-700" aria-hidden />
+            Mark as completed
+          </button>
           <button
             type="button"
             onClick={() => onEdit(appointment)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
           >
             <Edit2 className="h-3.5 w-3.5" aria-hidden />
-            Edit
+            Edit details
           </button>
           <button
             type="button"
             onClick={() => onCancel(appointment.id)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#FECDCA] bg-[#FFF1F0] px-3 py-1.5 text-xs font-medium text-[#E27D72] hover:bg-[#FECDCA]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#FECDCA] bg-[#FFF1F0] px-3 py-1.5 text-xs font-medium text-[#B91C1C] hover:bg-[#FECDCA]/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-colors cursor-pointer"
           >
-            <XCircle className="h-3.5 w-3.5" aria-hidden />
+            <XCircle className="h-3.5 w-3.5 text-[#E27D72]" aria-hidden />
             Cancel appointment
           </button>
         </div>
       )}
 
-      {/* Confirmation dialog (inline) */}
-      {showConfirm && (
+      {/* Cancellation Confirmation alertdialog */}
+      {showCancelConfirm && (
         <div
           role="alertdialog"
-          aria-label="Confirm cancellation"
-          className="rounded-lg border border-[#FECDCA] bg-[#FFF1F0] p-3 flex flex-col gap-2"
+          aria-label="Confirm appointment cancellation"
+          className="rounded-lg border border-[#FECDCA] bg-[#FFF1F0] p-3.5 flex flex-col gap-2.5 animate-in fade-in duration-150"
         >
-          <p className="text-xs font-medium text-[#B91C1C]">
-            Cancel this appointment? This cannot be undone in this demo session.
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-[#B91C1C]">
+            <AlertTriangle className="h-4 w-4" aria-hidden />
+            Cancel this clinic appointment?
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This will mark the visit at <strong>{appointment.clinicName}</strong> as cancelled and move it to your past visits archive.
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={onConfirmCancel}
-              disabled={cancelling}
-              className="rounded-lg bg-[#E27D72] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-opacity"
+              disabled={processing}
+              className="rounded-lg bg-[#E27D72] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#d4665a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors cursor-pointer"
             >
-              {cancelling ? "Cancelling…" : "Yes, cancel"}
+              {processing ? "Cancelling…" : "Yes, cancel appointment"}
             </button>
             <button
               type="button"
               onClick={onDismissConfirm}
-              disabled={cancelling}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors"
+              disabled={processing}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors cursor-pointer"
             >
-              Keep
+              Keep appointment
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Completion Confirmation alertdialog */}
+      {showCompleteConfirm && (
+        <div
+          role="alertdialog"
+          aria-label="Confirm appointment completion"
+          className="rounded-lg border border-green-300 bg-green-50 p-3.5 flex flex-col gap-2.5 animate-in fade-in duration-150"
+        >
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-green-900">
+            <CheckCircle2 className="h-4 w-4 text-green-700" aria-hidden />
+            Mark clinic visit as completed?
+          </div>
+          <p className="text-xs text-green-800">
+            Marking this appointment as completed will record that <strong>{childName}</strong> attended the visit at <strong>{appointment.clinicName}</strong>.
+          </p>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onConfirmComplete}
+              disabled={processing}
+              className="rounded-lg bg-green-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {processing ? "Marking complete…" : "Yes, mark completed"}
+            </button>
+            <button
+              type="button"
+              onClick={onDismissConfirm}
+              disabled={processing}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              Keep scheduled
             </button>
           </div>
         </div>
@@ -374,34 +461,55 @@ function AppointmentCard({
 }
 
 // ---------------------------------------------------------------------------
-// Appointment form
+// Appointment Form Component
 // ---------------------------------------------------------------------------
 type FormProps = {
   form: AppointmentFormState
+  child: Child
   isEdit: boolean
   onField: (field: string, value: string) => void
   onSubmit: () => void
   onCancel: () => void
 }
 
-function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProps) {
+function AppointmentForm({
+  form,
+  child,
+  isEdit,
+  onField,
+  onSubmit,
+  onCancel,
+}: FormProps) {
   const firstRef = useRef<HTMLInputElement>(null)
-  useEffect(() => { firstRef.current?.focus() }, [])
+  useEffect(() => {
+    firstRef.current?.focus()
+  }, [])
 
   return (
     <section
-      aria-label={isEdit ? "Edit appointment" : "New appointment"}
-      className="rounded-xl border border-[#A7F3D0] bg-[#E8F7F3] p-4 flex flex-col gap-4"
+      aria-label={isEdit ? "Edit clinic appointment" : "Schedule new clinic appointment"}
+      className="rounded-xl border border-[#A7F3D0] bg-[#E8F7F3]/70 p-4 sm:p-5 flex flex-col gap-4 shadow-xs"
     >
-      <h2 className="text-sm font-semibold text-[#0F766E]">
-        {isEdit ? "Edit appointment" : "New appointment"}
-      </h2>
+      <div className="flex items-center justify-between border-b border-[#A7F3D0]/60 pb-3">
+        <div>
+          <h2 className="text-base font-semibold text-[#0F766E] flex items-center gap-1.5">
+            <CalendarCheck2 className="h-4 w-4" aria-hidden />
+            {isEdit ? "Edit Clinic Appointment" : "Schedule New Clinic Appointment"}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            For child: <strong>{child.name}</strong> (ID: {child.id})
+          </p>
+        </div>
+        <span className="text-[11px] text-muted-foreground bg-card/80 border border-border px-2 py-0.5 rounded">
+          Local time (+05:30)
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Clinic name */}
+        {/* Clinic Name */}
         <div className="flex flex-col gap-1 sm:col-span-2">
-          <label htmlFor="appt-clinic" className="text-xs font-medium">
-            Clinic name <span aria-hidden>*</span>
+          <label htmlFor="appt-clinic" className="text-xs font-semibold">
+            Healthcare Facility / Clinic Name <span className="text-[#E27D72]" aria-hidden>*</span>
           </label>
           <input
             ref={firstRef}
@@ -410,16 +518,16 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
             value={form.clinicName}
             onChange={(e) => onField("clinicName", e.target.value)}
             disabled={form.submitting}
-            placeholder="e.g. Sample Clinic, Colombo"
+            placeholder="e.g. MOH Clinic Dehiwala, Colombo or Lady Ridgeway Hospital"
             className={cn(
               "rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              form.errors.clinicName && "border-[#E27D72]",
+              form.errors.clinicName && "border-[#E27D72] ring-1 ring-[#E27D72]",
             )}
             aria-describedby={form.errors.clinicName ? "err-clinic" : undefined}
             aria-invalid={!!form.errors.clinicName}
           />
           {form.errors.clinicName && (
-            <p id="err-clinic" className="text-xs text-[#E27D72]" role="alert">
+            <p id="err-clinic" className="text-xs font-medium text-[#E27D72]" role="alert">
               {form.errors.clinicName}
             </p>
           )}
@@ -427,8 +535,8 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
 
         {/* Date */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="appt-date" className="text-xs font-medium">
-            Date <span aria-hidden>*</span>
+          <label htmlFor="appt-date" className="text-xs font-semibold">
+            Appointment Date <span className="text-[#E27D72]" aria-hidden>*</span>
           </label>
           <input
             id="appt-date"
@@ -438,13 +546,13 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
             disabled={form.submitting}
             className={cn(
               "rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              form.errors.scheduledDate && "border-[#E27D72]",
+              form.errors.scheduledDate && "border-[#E27D72] ring-1 ring-[#E27D72]",
             )}
             aria-describedby={form.errors.scheduledDate ? "err-date" : undefined}
             aria-invalid={!!form.errors.scheduledDate}
           />
           {form.errors.scheduledDate && (
-            <p id="err-date" className="text-xs text-[#E27D72]" role="alert">
+            <p id="err-date" className="text-xs font-medium text-[#E27D72]" role="alert">
               {form.errors.scheduledDate}
             </p>
           )}
@@ -452,8 +560,8 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
 
         {/* Time */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="appt-time" className="text-xs font-medium">
-            Time (Sri Lanka, +05:30) <span aria-hidden>*</span>
+          <label htmlFor="appt-time" className="text-xs font-semibold">
+            Local Time (Sri Lanka, +05:30) <span className="text-[#E27D72]" aria-hidden>*</span>
           </label>
           <input
             id="appt-time"
@@ -461,14 +569,24 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
             value={form.scheduledTime}
             onChange={(e) => onField("scheduledTime", e.target.value)}
             disabled={form.submitting}
-            className="rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className={cn(
+              "rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              form.errors.scheduledTime && "border-[#E27D72] ring-1 ring-[#E27D72]",
+            )}
+            aria-describedby={form.errors.scheduledTime ? "err-time" : undefined}
+            aria-invalid={!!form.errors.scheduledTime}
           />
+          {form.errors.scheduledTime && (
+            <p id="err-time" className="text-xs font-medium text-[#E27D72]" role="alert">
+              {form.errors.scheduledTime}
+            </p>
+          )}
         </div>
 
         {/* Purpose */}
         <div className="flex flex-col gap-1 sm:col-span-2">
-          <label htmlFor="appt-purpose" className="text-xs font-medium">
-            Purpose (optional)
+          <label htmlFor="appt-purpose" className="text-xs font-semibold">
+            Purpose of Visit (optional)
           </label>
           <input
             id="appt-purpose"
@@ -476,36 +594,56 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
             value={form.purpose}
             onChange={(e) => onField("purpose", e.target.value)}
             disabled={form.submitting}
-            placeholder="e.g. 6-month immunisation visit"
+            placeholder="e.g. 9-month development check and MMR vaccination"
             className="rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           />
+        </div>
+
+        {/* Status */}
+        <div className="flex flex-col gap-1 sm:col-span-2">
+          <label htmlFor="appt-status" className="text-xs font-semibold">
+            Appointment Status
+          </label>
+          <select
+            id="appt-status"
+            value={form.status}
+            onChange={(e) => onField("status", e.target.value)}
+            disabled={form.submitting}
+            className="rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <option value="scheduled">Scheduled (Upcoming visit)</option>
+            <option value="completed">Completed (Attended visit)</option>
+          </select>
+          <p className="text-[11px] text-muted-foreground">
+            To cancel an appointment, use the "Cancel appointment" action on the appointment card.
+          </p>
         </div>
       </div>
 
       {form.errors.general && (
-        <p className="rounded-lg bg-[#FFF1F0] px-3 py-2 text-xs text-[#E27D72]" role="alert">
+        <div className="rounded-lg border border-[#FECDCA] bg-[#FFF1F0] px-3 py-2 text-xs font-medium text-[#E27D72]" role="alert">
           {form.errors.general}
-        </p>
+        </div>
       )}
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap pt-2 border-t border-[#A7F3D0]/50">
         <button
           type="button"
           onClick={onSubmit}
           disabled={form.submitting}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-opacity"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-opacity cursor-pointer"
         >
           {form.submitting
             ? "Saving…"
             : isEdit
             ? "Save changes"
-            : "Create appointment"}
+            : "Schedule appointment"}
         </button>
         <button
           type="button"
           onClick={onCancel}
           disabled={form.submitting}
-          className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors"
+          className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 transition-colors cursor-pointer"
         >
           Cancel
         </button>
@@ -515,7 +653,7 @@ function AppointmentForm({ form, isEdit, onField, onSubmit, onCancel }: FormProp
 }
 
 // ---------------------------------------------------------------------------
-// Main page component
+// Main Page Component
 // ---------------------------------------------------------------------------
 export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
   const [state, dispatch] = useReducer(reducer, { phase: "loading" })
@@ -534,22 +672,25 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
           const message =
             err instanceof AppError
               ? err.message
-              : "Unable to load appointments. Please try again."
+              : "Unable to load appointments for this child profile."
           dispatch({ type: "ERROR", message })
         }
       }
     }
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [childId])
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (state.phase === "loading") {
     return (
-      <div className="flex max-w-2xl flex-col gap-4" aria-busy="true">
+      <div className="flex max-w-2xl flex-col gap-4" aria-busy="true" aria-label="Loading appointments">
         <div className="h-8 w-48 rounded-lg bg-muted animate-pulse" />
+        <div className="h-14 rounded-xl bg-muted animate-pulse" />
         {[1, 2].map((n) => (
-          <div key={n} className="h-28 rounded-xl bg-muted animate-pulse" />
+          <div key={n} className="h-32 rounded-xl bg-muted animate-pulse" />
         ))}
       </div>
     )
@@ -559,17 +700,17 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
   if (state.phase === "error") {
     return (
       <div className="flex max-w-2xl flex-col gap-4">
-        <div className="rounded-xl border border-[#FECDCA] bg-[#FFF1F0] p-5 flex flex-col gap-3">
+        <div className="rounded-xl border border-[#FECDCA] bg-[#FFF1F0] p-6 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-[#E27D72]" aria-hidden />
-            <h1 className="text-lg font-semibold">Child not found</h1>
+            <h1 className="text-lg font-semibold text-foreground">Child record unavailable</h1>
           </div>
           <p className="text-sm text-muted-foreground">{state.message}</p>
           <Link
             to={routes.dashboard}
             className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            Go to Dashboard
+            Return to Dashboard
           </Link>
         </div>
       </div>
@@ -577,7 +718,7 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
   }
 
   // ── Ready ────────────────────────────────────────────────────────────────
-  const { child, appointments, tab, showForm, form, confirmCancelId } = state
+  const { child, appointments, tab, showForm, form, confirmCancelId, confirmCompleteId } = state
   const ageMonths = ageInMonths(child.dateOfBirth)
 
   const upcoming = appointments.filter(isUpcoming)
@@ -589,12 +730,26 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
     const { form: f } = state
     const errors: Record<string, string> = {}
 
-    if (!f.clinicName.trim()) {
+    // Validation: Clinic Name
+    if (!f.clinicName || !f.clinicName.trim()) {
       errors.clinicName = "Clinic name is required."
     }
-    if (!f.scheduledDate) {
-      errors.scheduledDate = "Date is required."
+
+    // Validation: Date
+    if (!f.scheduledDate || !f.scheduledDate.trim()) {
+      errors.scheduledDate = "Appointment date is required."
+    } else {
+      const parsedDate = Date.parse(f.scheduledDate)
+      if (isNaN(parsedDate)) {
+        errors.scheduledDate = "Please enter a valid appointment date."
+      }
     }
+
+    // Validation: Time
+    if (!f.scheduledTime || !f.scheduledTime.trim()) {
+      errors.scheduledTime = "Appointment time is required."
+    }
+
     if (Object.keys(errors).length > 0) {
       dispatch({ type: "FORM_ERRORS", errors })
       return
@@ -608,21 +763,28 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
       if (f.editingId) {
         appointment = await appointmentService.update(f.editingId, {
           scheduledAt,
-          clinicName: f.clinicName,
-          purpose: f.purpose || undefined,
+          clinicName: f.clinicName.trim(),
+          purpose: f.purpose?.trim() || undefined,
+          status: f.status,
         })
       } else {
-        appointment = await appointmentService.create({
-          childId,
+        const created = await appointmentService.create({
+          childId: child.id,
           scheduledAt,
-          clinicName: f.clinicName,
-          purpose: f.purpose || undefined,
+          clinicName: f.clinicName.trim(),
+          purpose: f.purpose?.trim() || undefined,
         })
+        // If status was chosen as completed on creation, update it
+        if (f.status === "completed") {
+          appointment = await appointmentService.update(created.id, { status: "completed" })
+        } else {
+          appointment = created
+        }
       }
       dispatch({ type: "SUBMIT_DONE", appointment })
     } catch (err) {
       const msg =
-        err instanceof AppError ? err.message : "Unable to save appointment."
+        err instanceof AppError ? err.message : "Unable to save appointment. Please check inputs."
       dispatch({ type: "FORM_ERRORS", errors: { general: msg } })
     }
   }
@@ -631,58 +793,78 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
     if (state.phase !== "ready" || !state.confirmCancelId) return
     try {
       const appointment = await appointmentService.cancel(state.confirmCancelId)
-      dispatch({ type: "CANCEL_DONE", appointment })
+      dispatch({ type: "MUTATION_DONE", appointment })
     } catch {
-      // Silently dismiss; in production show error feedback.
+      dispatch({ type: "DISMISS_CONFIRM" })
+    }
+  }
+
+  async function handleConfirmComplete() {
+    if (state.phase !== "ready" || !state.confirmCompleteId) return
+    try {
+      const appointment = await appointmentService.complete(state.confirmCompleteId)
+      dispatch({ type: "MUTATION_DONE", appointment })
+    } catch {
       dispatch({ type: "DISMISS_CONFIRM" })
     }
   }
 
   return (
     <div className="flex min-w-0 flex-col gap-6 max-w-2xl">
-      {/* Page header */}
+      {/* Page Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" aria-hidden />
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Appointments — {child.name}
+            <CalendarDays className="h-6 w-6 text-primary" aria-hidden />
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Clinic Appointments
             </h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            {formatAge(ageMonths)} old
+            Tracking physical clinic visits for{" "}
+            <strong className="text-foreground">{child.name}</strong> • {formatAge(ageMonths)} old
           </p>
         </div>
         {!showForm && (
           <button
             type="button"
             onClick={() => dispatch({ type: "SHOW_ADD_FORM" })}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-opacity"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-opacity cursor-pointer shadow-xs"
           >
             <PlusCircle className="h-4 w-4" aria-hidden />
-            New appointment
+            Schedule appointment
           </button>
         )}
       </div>
 
-      {/* Reminder notice (FR-052) */}
+      {/* EPI Milestone Separation Banner (FR-051, BR-02) */}
       <aside
-        aria-label="Reminder notice"
-        className="flex items-start gap-2 rounded-xl border border-border bg-[#E8F7F3] px-4 py-3 text-xs"
+        aria-label="Clinical boundary notice"
+        className="flex items-start gap-2.5 rounded-xl border border-teal-200 bg-[#E8F7F3] px-4 py-3 text-xs leading-relaxed"
       >
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
         <span className="text-muted-foreground">
-          SuwaDaru shows reminder{" "}
-          <strong className="text-foreground">previews only</strong>. No SMS,
-          email, or push notification is sent. Contact your clinic directly for
-          real reminders.
+          <strong className="text-foreground">Clinic Appointments vs National EPI Milestones:</strong> Clinic visits are scheduled consultations at a healthcare facility (MOH clinic, hospital, or GP). They are tracked separately from national EPI immunization calendar due dates.
         </span>
       </aside>
 
-      {/* Form */}
+      {/* Reminder Preview Disclaimer (FR-052, BR-07) */}
+      <aside
+        aria-label="Reminder disclaimer"
+        className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-900"
+      >
+        <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
+        <span>
+          <strong>Reminder previews only:</strong> SuwaDaru displays demonstration previews labeled{" "}
+          <span className="font-bold underline">"Not sent"</span>. No real SMS, push, or email notifications are dispatched.
+        </span>
+      </aside>
+
+      {/* Add / Edit Form */}
       {showForm && (
         <AppointmentForm
           form={form}
+          child={child}
           isEdit={!!form.editingId}
           onField={(field, value) => dispatch({ type: "FORM_FIELD", field, value })}
           onSubmit={handleSubmit}
@@ -691,70 +873,86 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
       )}
 
       {/* Tabs */}
-      <div role="tablist" aria-label="Filter appointments" className="flex gap-1 border-b border-border">
+      <div role="tablist" aria-label="Filter appointments by time" className="flex gap-2 border-b border-border">
         {(["upcoming", "past"] as AppointmentTab[]).map((t) => (
           <button
             key={t}
             role="tab"
+            id={`tab-${t}`}
+            aria-controls={`panel-${t}`}
             aria-selected={tab === t}
             type="button"
             onClick={() => dispatch({ type: "SET_TAB", tab: t })}
             className={cn(
-              "rounded-t-lg px-4 py-2 text-sm font-medium capitalize transition-colors",
+              "rounded-t-lg px-4 py-2.5 text-sm font-semibold capitalize transition-colors cursor-pointer",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               tab === t
-                ? "border-b-2 border-primary text-primary"
+                ? "border-b-2 border-primary text-primary bg-primary/5"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {t}
+            {t} visits
             {t === "upcoming" && upcoming.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+              <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
                 {upcoming.length}
+              </span>
+            )}
+            {t === "past" && past.length > 0 && (
+              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                {past.length}
               </span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Appointment list */}
-      <section aria-label={`${tab} appointments`}>
+      {/* Appointment List Section */}
+      <section
+        id={`panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        aria-label={`${tab} clinic visits`}
+      >
         {displayed.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-8 text-center shadow-xs">
             <CalendarDays className="h-10 w-10 text-muted-foreground/30" aria-hidden />
             <div>
-              <p className="font-semibold text-sm">
-                No {tab} appointments
+              <p className="font-semibold text-sm text-foreground">
+                No {tab} appointments for {child.name}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm">
                 {tab === "upcoming"
-                  ? "Create a new appointment using the button above."
-                  : "Completed and cancelled appointments will appear here."}
+                  ? "Schedule your child's next clinic consultation, development review, or vaccination visit using the button below."
+                  : "Completed or cancelled clinic visits will appear here for your historical records."}
               </p>
             </div>
             {tab === "upcoming" && !showForm && (
               <button
                 type="button"
                 onClick={() => dispatch({ type: "SHOW_ADD_FORM" })}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-opacity"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring transition-opacity cursor-pointer"
               >
                 <PlusCircle className="h-4 w-4" aria-hidden />
-                New appointment
+                Schedule new appointment
               </button>
             )}
           </div>
         ) : (
-          <ul className="flex flex-col gap-3 list-none p-0 m-0">
+          <ul className="flex flex-col gap-3.5 list-none p-0 m-0">
             {displayed.map((appt) => (
               <li key={appt.id}>
                 <AppointmentCard
                   appointment={appt}
+                  childName={child.name}
                   onEdit={(a) => dispatch({ type: "SHOW_EDIT_FORM", appointment: a })}
                   onCancel={(id) => dispatch({ type: "CONFIRM_CANCEL", appointmentId: id })}
+                  onComplete={(id) => dispatch({ type: "CONFIRM_COMPLETE", appointmentId: id })}
                   confirmCancelId={confirmCancelId}
+                  confirmCompleteId={confirmCompleteId}
                   onDismissConfirm={() => dispatch({ type: "DISMISS_CONFIRM" })}
                   onConfirmCancel={handleConfirmCancel}
-                  cancelling={!!confirmCancelId}
+                  onConfirmComplete={handleConfirmComplete}
+                  processing={!!confirmCancelId || !!confirmCompleteId}
                 />
               </li>
             ))}
@@ -762,11 +960,9 @@ export function AppointmentsPage({ childId }: ChildFeaturePageProps) {
         )}
       </section>
 
-      {/* Disclaimer */}
-      <footer className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-        <strong>Fictional demonstration only.</strong> Appointments are stored
-        in-memory for this session only. No real reminders are sent, and this
-        data is not persisted to any database.
+      {/* Demo Footer */}
+      <footer className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+        <strong>Demonstration prototype only (F0):</strong> Clinic appointments are stored in-memory for this demo session. No external reminders are dispatched. Always consult your official Child Health Development Record (CHDR) and your local Public Health Midwife (PHM).
       </footer>
     </div>
   )
